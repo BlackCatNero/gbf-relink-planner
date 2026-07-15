@@ -963,6 +963,15 @@
       "가공할 만한 칠흑의 게 진",
       "스모워 포스",
     ]);
+    /** 진 강화 무시 · 스킬 목록 15 고정 */
+    const SIGIL_FIXED_15_NAMES = new Set([
+      "베르세르크",
+      "스파르타",
+      "건곤일척",
+      "프래즐 닷지",
+      "슈퍼 얼티메이트 Just 회피",
+      "모든 약화 효과 내성",
+    ]);
     /** 진 장착 시 좌측만 사용 · 같은 행 우측 슬롯 잠금 */
     const SIGIL_WIDE_NAMES = new Set([
       "가공할 만한 칠흑의 게 진",
@@ -1165,6 +1174,10 @@
       return SIGIL_FIXED_MAX_NAMES.has(name);
     }
 
+    function isSigilFixed15Skill(name) {
+      return SIGIL_FIXED_15_NAMES.has(name);
+    }
+
     function isSigilWideSkill(name) {
       return SIGIL_WIDE_NAMES.has(name);
     }
@@ -1197,7 +1210,7 @@
       if (source === "sigil" && isSigilFixedMaxSkill(slot.name)) {
         return catalogMaxFor(slot);
       }
-      if (source === "sigil" && isExclusiveSkill(slot)) {
+      if (source === "sigil" && (isExclusiveSkill(slot) || isSigilFixed15Skill(slot.name))) {
         return EQUIP_LEVEL;
       }
       const base = Number(slot.level) || 0;

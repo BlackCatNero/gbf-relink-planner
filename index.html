@@ -1179,6 +1179,13 @@
       return !!(left && left.skillId && isSigilWideSkill(left.name));
     }
 
+    function isExclusiveSkill(slot) {
+      if (!slot || !slot.skillId) return false;
+      if (slot.category === "exclusive") return true;
+      const cat = SKILL_CATALOG.find((s) => s.id === slot.skillId);
+      return !!(cat && cat.category === "exclusive");
+    }
+
     /** 진 강화 보유 시 진 스킬에 더해질 보너스 (보통 +2) */
     function sigilEnhanceBonus() {
       const slot = allEquippedSlots().find((s) => s.skillId && s.name === "진 강화");
@@ -1189,6 +1196,9 @@
       if (!slot || !slot.skillId) return 0;
       if (source === "sigil" && isSigilFixedMaxSkill(slot.name)) {
         return catalogMaxFor(slot);
+      }
+      if (source === "sigil" && isExclusiveSkill(slot)) {
+        return EQUIP_LEVEL;
       }
       const base = Number(slot.level) || 0;
       if (source === "sigil") return base + sigilEnhanceBonus();

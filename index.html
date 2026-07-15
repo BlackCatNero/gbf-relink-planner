@@ -126,7 +126,7 @@
       color-scheme: light;
     }
     .page {
-      max-width: 1180px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px 12px 40px;
     }
@@ -262,7 +262,7 @@
 
     .layout-3 {
       display: grid;
-      grid-template-columns: minmax(240px, 1.1fr) minmax(170px, 0.7fr) minmax(280px, 1.15fr);
+      grid-template-columns: minmax(220px, 0.8fr) minmax(240px, 0.8fr) minmax(480px, 2.1fr);
       gap: 10px;
       align-items: stretch;
     }
@@ -508,6 +508,21 @@
       padding: 4px 7px;
       line-height: 1.3;
       overflow: visible;
+      flex-wrap: wrap;
+    }
+
+    .skill-zone-list .line-row .fxline {
+      flex-basis: 100%;
+      font-size: 0.6rem;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--ink-soft);
+    }
+    /* FextraLife 합산 수치 라인: 값이 눈에 띄도록 강조 */
+    .skill-zone-list .line-row .fxline.fx-val {
+      color: var(--ok);
+      font-weight: 700;
+      font-size: 0.64rem;
     }
 
     .skill-zone-list .line-row .name {
@@ -538,6 +553,24 @@
 
     .master-zone .board {
       flex: 0 0 auto;
+    }
+
+    .zone-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .char-select {
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.7rem;
+      font-weight: 600;
     }
 
     .notes-field {
@@ -642,24 +675,44 @@
     }
 
     .nodes {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 4px;
-      justify-items: center;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
 
     .node {
-      width: 30px;
-      height: 30px;
+      width: 100%;
+      height: 34px;             /* 글자 수와 무관하게 모든 노드를 같은 크기로 고정(2줄 기준) */
+      display: flex;
+      align-items: center;      /* 텍스트를 블록 세로 중앙에 */
       border: 1px solid var(--line);
       border-radius: 7px;
       background: var(--node);
       cursor: pointer;
-      padding: 0;
+      padding: 3px 6px;
+      text-align: left;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 0.56rem;
+      line-height: 1.25;
+    }
+
+    .node .ntxt {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;            /* 표준 속성(호환) */
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      flex: 1 1 auto;
+      min-width: 0;             /* 플렉스 안에서 2줄 말줄임이 동작하도록 */
     }
 
     .node:hover { border-color: var(--hover-border); }
-    .node.selected { background: var(--active); border-color: var(--active); }
+    .node.selected {
+      background: var(--active);
+      border-color: var(--active);
+      color: var(--btn-primary-ink);
+    }
 
     .modal-backdrop {
       position: fixed;
@@ -739,6 +792,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-wrap: wrap;
       gap: 8px;
       width: 100%;
       padding: 7px 9px;
@@ -792,6 +846,14 @@
       color: var(--ink-soft);
       font-weight: 600;
     }
+    .pick-item .pfx {
+      flex-basis: 100%;
+      margin-top: -3px;
+      font-size: 0.66rem;
+      font-weight: 500;
+      line-height: 1.4;
+      color: var(--ink-soft);
+    }
 
     .modal-foot {
       display: flex;
@@ -810,6 +872,81 @@
       display: grid;
       gap: 8px;
     }
+
+    .calc-panel {
+      margin-top: 10px;
+      padding: 12px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      display: grid;
+      gap: 10px;
+    }
+
+    .calc-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+    .calc-head h2 { font-size: 0.9rem; margin: 0; }
+    .calc-src { font-size: 0.62rem; color: var(--ink-soft); }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    label.calc-field {
+      display: grid;
+      gap: 4px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--ink-soft);
+    }
+
+    .calc-field input[type="number"],
+    .calc-field select {
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.74rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .calc-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 16px;
+      font-size: 0.7rem;
+      color: var(--ink);
+    }
+    .calc-checks label { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; }
+
+    .calc-results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+
+    .calc-stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+    .calc-stat .k { font-size: 0.62rem; color: var(--ink-soft); font-weight: 700; }
+    .calc-stat .v {
+      font-family: Sora, sans-serif;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.98rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .calc-stat .sub { font-size: 0.6rem; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
+    .calc-stat.hit .v { color: var(--ok); }
+
+    .calc-note { font-size: 0.62rem; color: var(--ink-soft); margin: 0; line-height: 1.6; }
 
     label.field {
       display: grid;
@@ -894,7 +1031,10 @@
         </section>
 
         <section class="zone master-zone">
-          <div class="zone-title">마스터 스킬</div>
+          <div class="zone-title-row">
+            <div class="zone-title">마스터 스킬</div>
+            <select id="masterChar" class="char-select" aria-label="캐릭터 선택"></select>
+          </div>
           <div class="board" id="trees"></div>
           <label class="notes-field">
             <span class="notes-label">비고</span>
@@ -905,6 +1045,64 @@
     </div>
 
     <p class="toast" id="toast" aria-live="polite"></p>
+
+    <section class="calc-panel" id="calcPanel">
+      <div class="calc-head">
+        <h2>대미지 계산</h2>
+        <span class="calc-src">계산식: wikiwiki.jp/maglielle 「ジーン・加護 › ダメージ計算」 · 장착 스킬 합산 레벨 자동 반영</span>
+      </div>
+      <div class="calc-grid">
+        <label class="calc-field">기초 공격력<input type="number" id="dcAtk" value="16396" min="1" /></label>
+        <label class="calc-field">공격 배율(%)<input type="number" id="dcMotion" value="100" min="1" /></label>
+        <label class="calc-field">기본 대미지 상한<input type="number" id="dcCapBase" value="50000" min="1" /></label>
+        <label class="calc-field">현재 HP(%)<input type="number" id="dcHp" value="100" min="1" max="100" /></label>
+        <label class="calc-field">공격 종류
+          <select id="dcType">
+            <option value="normal">일반 공격</option>
+            <option value="charge">차지 공격</option>
+            <option value="ability">어빌리티</option>
+            <option value="ougi">오의</option>
+            <option value="link">링크 어택</option>
+            <option value="ranged">원거리 공격</option>
+            <option value="comboFin">콤보 피니시</option>
+            <option value="throw">투척</option>
+          </select>
+        </label>
+        <label class="calc-field">적 상태
+          <select id="dcEnemy">
+            <option value="none">통상</option>
+            <option value="od">오버드라이브</option>
+            <option value="break">브레이크</option>
+          </select>
+        </label>
+        <label class="calc-field">장착 어빌리티 수
+          <select id="dcAbil">
+            <option value="3">3개</option>
+            <option value="2">2개</option>
+            <option value="1">1개</option>
+            <option value="0">0개</option>
+          </select>
+        </label>
+        <label class="calc-field">공격 버프(%)<input type="number" id="dcAtkBuff" value="0" /></label>
+        <label class="calc-field">적 방어 DOWN(%)<input type="number" id="dcDefDown" value="0" /></label>
+        <label class="calc-field">대미지 강화(%)<input type="number" id="dcBoost" value="0" /></label>
+        <label class="calc-field">적 대미지 경감(%)<input type="number" id="dcEnemyCut" value="0" /></label>
+      </div>
+      <div class="calc-checks">
+        <label><input type="checkbox" id="dcCrit" checked />크리티컬</label>
+        <label><input type="checkbox" id="dcWeakSpot" />약점 부위</label>
+        <label><input type="checkbox" id="dcBack" />배후 공격</label>
+        <label><input type="checkbox" id="dcWeakState" />적 약화 상태</label>
+        <label><input type="checkbox" id="dcElem" checked />유리 속성 (+20%, 상한 후 적용)</label>
+        <label><input type="checkbox" id="dcLinkTime" />링크 타임 (×1.2)</label>
+      </div>
+      <div class="calc-results" id="dcResults"></div>
+      <p class="calc-note">
+        조건부 스킬(카타스트로피 노바·천성·광천 계열·콤보 보너스 등)은 조건 충족·최대 단계로 가정 ·
+        캐릭터 강화/한계돌파는 만렙 가정 · 만렙 미만 스킬 수치는 √ 비례 근사(위키 검증점: 혼신 Slv16=51%, 폭군 Slv16=36%) ·
+        견수·강건(받는 대미지 계열)과 캐릭터 고유 배율·전용 스킬 배율은 미반영(수동 입력란 활용) · 난수 ±5%
+      </p>
+    </section>
 
     <section class="code-panel">
       <label class="field">빌드 코드
@@ -937,6 +1135,8 @@
   </div>
 
   <script src="skills-data.js"></script>
+  <script src="sigil-values-data.js"></script>
+  <script src="master-skills-data.js"></script>
   <script>
     const TREES = [
       { id: "gaksung", label: "각성" },
@@ -948,7 +1148,7 @@
       { id: "r1", label: "스타일 랭크 1", short: "1", count: 4, budget: 10, activateAt: 3, needsPrev: false },
       { id: "r2", label: "스타일 랭크 2", short: "2", count: 8, budget: 10, activateAt: 6, needsPrev: true },
       { id: "r3", label: "스타일 랭크 3", short: "3", count: 8, budget: 10, activateAt: 6, needsPrev: true },
-      { id: "ex", label: "스타일 랭크 EX", short: "EX", count: 10, budget: 20, activateAt: null, needsPrev: false },
+      { id: "ex", label: "스타일 랭크 EX", short: "EX", count: 14, budget: 20, activateAt: null, needsPrev: false },
     ];
 
     const BLESSING_SLOT_DEFS = [
@@ -1074,6 +1274,7 @@
       sigils: Array.from({ length: 24 }, emptySlot),
       summonSkills: Array.from({ length: 4 }, emptySlot),
       summonStats: Array.from({ length: 4 }, () => emptyStatSlot()),
+      masterChar: "gran",
     };
 
     const picker = {
@@ -1312,7 +1513,9 @@
       const max = catalogMaxFor(slot);
       const tone = levelToneClass(slot.level, max);
       const lvHtml = hideLv ? "" : `<span class="lv${tone}">${slot.level}</span>`;
-      return `<${tag}${type} class="line-row${pick}${lock}${cat}${pri}"${attr}><span class="name">${escapeHtml(slot.name)}</span>${lvHtml}</${tag}>`;
+      const fx = skillEffectText(slot.name);
+      const fxAttr = fx ? ` title="${escapeHtml(fx)}"` : "";
+      return `<${tag}${type} class="line-row${pick}${lock}${cat}${pri}"${attr}${fxAttr}><span class="name">${escapeHtml(slot.name)}</span>${lvHtml}</${tag}>`;
     }
 
     function renderGear() {
@@ -1355,7 +1558,11 @@
             }
             const max = catalogMaxFor(s);
             const tone = levelToneClass(s.level, max);
-            return `<button type="button" class="sigil-slot cat-${s.category}${wideCls}" data-pick="sigil:${i}"><span class="sname">${escapeHtml(s.name)}</span><span class="slv${tone}">${s.level}</span></button>`;
+            const fv = sigilValueText(s.name, s.level); // FextraLife: 이 진 레벨의 수치
+            const g8 = skillEffectText(s.name);          // game8: 최대 효과 설명
+            const tipText = fv ? (g8 ? `${fv}\n${g8}` : fv) : g8;
+            const fxAttr = tipText ? ` title="${escapeHtml(tipText)}"` : "";
+            return `<button type="button" class="sigil-slot cat-${s.category}${wideCls}" data-pick="sigil:${i}"${fxAttr}><span class="sname">${escapeHtml(s.name)}</span><span class="slv${tone}">${s.level}</span></button>`;
           }).join("")}
         </div>`;
 
@@ -1410,26 +1617,52 @@
       }
       root.innerHTML = list.map((s) => {
         const tone = levelToneClass(s.level, s.max);
-        return `<div class="line-row cat-${s.category}"><span class="name">${escapeHtml(s.name)}</span><span class="lv${tone}">${s.level}/${s.max}</span></div>`;
+        const fv = sigilValueText(s.name, s.level); // FextraLife: 합산 레벨 기준 현재 수치
+        const g8 = skillEffectText(s.name);         // game8: 최대 효과 설명(툴팁/보조)
+        let fxHtml, tip;
+        if (fv) {
+          // 매칭된 스킬: FextraLife 수치를 본문에 강조, game8 설명은 툴팁으로
+          fxHtml = `<span class="fxline fx-val">${escapeHtml(fv)}</span>`;
+          tip = g8 ? ` title="${escapeHtml(g8)}"` : "";
+        } else {
+          // FextraLife 표에 없는 스킬: 기존대로 game8 설명을 본문에 유지
+          fxHtml = g8 ? `<span class="fxline">${escapeHtml(g8)}</span>` : "";
+          tip = "";
+        }
+        return `<div class="line-row cat-${s.category}"${tip}><span class="name">${escapeHtml(s.name)}</span><span class="lv${tone}">${s.level}/${s.max}</span>${fxHtml}</div>`;
       }).join("");
+    }
+
+    function masterCharData() {
+      return MASTER_SKILLS.chars.find((c) => c.id === state.masterChar) || null;
     }
 
     function renderTrees() {
       const root = document.getElementById("trees");
-      const heads = TREES.map(
-        (tree) => `<header class="tree-head" data-tree="${tree.id}"><div class="style-name">${tree.label}</div></header>`
-      ).join("");
+      const chr = masterCharData();
+      const heads = TREES.map((tree, ti) => {
+        const styleFx = chr && chr.style[ti] && chr.style[ti].length
+          ? chr.style[ti].map((tx, si) => `${"★".repeat(si + 1)} ${tx}`).join("\n")
+          : "";
+        const tip = styleFx ? ` title="${escapeHtml(styleFx)}"` : "";
+        return `<header class="tree-head" data-tree="${tree.id}"${tip}><div class="style-name">${tree.label}</div></header>`;
+      }).join("");
 
-      const rows = RANKS.map((rank) => {
+      const rows = RANKS.map((rank, ri) => {
         const used = selectedCount(rank.id);
         const countCls = used > rank.budget ? " over" : used === rank.budget ? " full" : "";
         const side = `<div class="rank-side"><span class="rank-word">Rank</span><span class="rank-num">${rank.short}</span><span class="rank-count${countCls}">${used}/${rank.budget}</span></div>`;
-        const cells = TREES.map((tree) => {
+        const cells = TREES.map((tree, ti) => {
           const active = isRankActive(tree.id, rank.id);
-          const nodes = Array.from({ length: rank.count }, (_, i) => {
+          const data = chr ? chr.nodes[ti][ri] : null;
+          // characters whose game8 page still lists the pre-expansion EX tree get 10 slots
+          const shown = data && data.length ? Math.min(rank.count, data.length) : (rank.id === "ex" ? 10 : rank.count);
+          const nodes = Array.from({ length: shown }, (_, i) => {
             const k = key(tree.id, rank.id, i);
             const selected = state.selected[k];
-            return `<button type="button" class="node${selected ? " selected" : ""}" data-key="${k}" aria-pressed="${selected}"></button>`;
+            const nd = data && data[i];
+            const tip = nd ? ` title="${escapeHtml(nd.k)}"` : "";
+            return `<button type="button" class="node${selected ? " selected" : ""}" data-key="${k}" aria-pressed="${selected}"${tip}><span class="ntxt">${escapeHtml(nd ? nd.k : "")}</span></button>`;
           }).join("");
           return `<section class="rank${active ? " is-active" : ""}"><div class="nodes">${nodes}</div></section>`;
         }).join("");
@@ -1479,9 +1712,14 @@
       if (notesEl && document.activeElement !== notesEl) notesEl.value = state.notes || "";
       normalizeSigilFixedMaxLevels();
       normalizeSigilWideSlots();
+      const charSel = document.getElementById("masterChar");
+      if (charSel && charSel.options.length && charSel.value !== state.masterChar) {
+        charSel.value = state.masterChar;
+      }
       renderGear();
       renderSkills();
       renderTrees();
+      renderCalc();
       persistState();
     }
 
@@ -1506,6 +1744,7 @@
           sg: state.sigils,
           sm: state.summonSkills,
           ss: state.summonStats,
+          mc: state.masterChar,
         }));
       } catch (_) { /* ignore */ }
     }
@@ -1523,6 +1762,9 @@
         }
         state.buildName = payload.n || payload.buildName || "";
         state.notes = payload.note || payload.notes || "";
+        if (typeof payload.mc === "string" && MASTER_SKILLS.chars.some((c) => c.id === payload.mc)) {
+          state.masterChar = payload.mc;
+        }
         if (typeof payload.w === "number") {
           state.weapon = payload.w;
           state.weaponSkills = makeWeaponSlots(state.weapon);
@@ -1712,7 +1954,9 @@
             ? `<div class="pick-sep"></div>` : "";
           const pri = s.priority ? " is-priority" : "";
           const mark = s.priority ? `<span class="pmark">&lt;&gt;</span>` : "";
-          return `${sep}<button type="button" class="pick-item cat-${s.category}${pri}" data-skill="${escapeHtml(s.id)}"${disabled}>${mark}<span class="pname">${escapeHtml(s.name)}</span><span class="pmax">${picker.grantLevel}</span></button>`;
+          const fx = skillEffectText(s.name);
+          const fxHtml = fx ? `<span class="pfx">${escapeHtml(fx)}</span>` : "";
+          return `${sep}<button type="button" class="pick-item cat-${s.category}${pri}" data-skill="${escapeHtml(s.id)}"${disabled}>${mark}<span class="pname">${escapeHtml(s.name)}</span><span class="pmax">${picker.grantLevel}</span>${fxHtml}</button>`;
         }).join("");
       } else {
         tabs.innerHTML = CATEGORIES.map((c) =>
@@ -1729,7 +1973,9 @@
             ? `<div class="pick-sep"></div>` : "";
           const pri = s.priority ? " is-priority" : "";
           const mark = s.priority ? `<span class="pmark">&lt;&gt;</span>` : "";
-          return `${sep}<button type="button" class="pick-item cat-${s.category}${pri}" data-skill="${escapeHtml(s.id)}">${mark}<span class="pname">${escapeHtml(s.name)}</span><span class="pmax">${showLv}</span></button>`;
+          const fx = skillEffectText(s.name);
+          const fxHtml = fx ? `<span class="pfx">${escapeHtml(fx)}</span>` : "";
+          return `${sep}<button type="button" class="pick-item cat-${s.category}${pri}" data-skill="${escapeHtml(s.id)}">${mark}<span class="pname">${escapeHtml(s.name)}</span><span class="pmax">${showLv}</span>${fxHtml}</button>`;
         }).join("");
 
         document.querySelectorAll(".modal-tab").forEach((tab) => {
@@ -1915,19 +2161,18 @@
     function migrateMasterBits(bits) {
       const expected = TREES.length * RANKS.reduce((s, rank) => s + rank.count, 0);
       if (bits.length === expected) return bits;
-      // 이전 구조: 트리당 r1=4, r2=10, r3=10, ex=10
-      const legacyPerTree = 4 + 10 + 10 + 10;
-      const legacyTotal = TREES.length * legacyPerTree;
-      if (bits.length !== legacyTotal) return bits;
-      let i = 0;
-      const out = [];
-      for (let t = 0; t < TREES.length; t++) {
-        out.push(bits.slice(i, i + 4)); i += 4;
-        out.push(bits.slice(i, i + 8)); i += 10; // r2: 앞 8만
-        out.push(bits.slice(i, i + 8)); i += 10; // r3: 앞 8만
-        out.push(bits.slice(i, i + 10)); i += 10;
+      // EX-10 layout (before the EX rank was expanded to 14): pad each tree's EX with 0s
+      const v6PerTree = 4 + 8 + 8 + 10;
+      if (bits.length === TREES.length * v6PerTree) {
+        let i = 0;
+        const out = [];
+        for (let t = 0; t < TREES.length; t++) {
+          out.push(bits.slice(i, i + 20)); i += 20; // r1+r2+r3
+          out.push(bits.slice(i, i + 10), "0000"); i += 10; // ex 10 -> 14
+        }
+        return out.join("");
       }
-      return out.join("");
+      return bits;
     }
 
     function applyMasterBits(bits) {
@@ -2032,6 +2277,176 @@
       link.click();
       setToast("이미지를 다운로드했습니다.", "ok");
     }
+
+    // ---- Damage calculator (wikiwiki.jp/maglielle ジーン・加護 "ダメージ計算" formula) ----
+
+    function dcLevels() {
+      const map = {};
+      aggregateSkills().forEach((s) => {
+        map[s.name] = Math.min(s.level, s.max);
+      });
+      return map;
+    }
+
+    // sqrt-curve level scaling, exact at max level; reproduces the wiki's
+    // anchor points (혼신 Slv16=51%/Slv30=70%, 폭군 Slv16=36%/Slv30=50%).
+    function dcScaled(lv, name, maxVal) {
+      const level = lv[name];
+      if (!level) return 0;
+      const cat = SKILL_CATALOG.find((s) => s.name === name);
+      const maxLv = cat ? cat.max : 15;
+      return maxVal * Math.sqrt(Math.min(level, maxLv) / maxLv);
+    }
+
+    // linear interpolation over [hp%, value%] points sorted by hp ascending
+    function dcInterp(points, hp) {
+      if (hp <= points[0][0]) return points[0][1];
+      for (let i = 1; i < points.length; i++) {
+        if (hp <= points[i][0]) {
+          const x0 = points[i - 1][0], y0 = points[i - 1][1];
+          const x1 = points[i][0], y1 = points[i][1];
+          return y0 + ((hp - x0) / (x1 - x0)) * (y1 - y0);
+        }
+      }
+      return points[points.length - 1][1];
+    }
+
+    function dcNum(id, fallback) {
+      const v = Number(document.getElementById(id).value);
+      return Number.isFinite(v) ? v : fallback;
+    }
+
+    function computeDamage() {
+      const lv = dcLevels();
+      const baseAtk = Math.max(1, dcNum("dcAtk", 16396));
+      const motion = Math.max(1, dcNum("dcMotion", 100)) / 100;
+      const capBase = Math.max(1, dcNum("dcCapBase", 50000));
+      const hp = Math.min(100, Math.max(1, dcNum("dcHp", 100)));
+      const type = document.getElementById("dcType").value;
+      const enemy = document.getElementById("dcEnemy").value;
+      const abil = Number(document.getElementById("dcAbil").value);
+      const chk = (id) => document.getElementById(id).checked;
+
+      // 정적 배율 = 폭군 × 궁지 × 미세한 차이 × 카타스트로피 × 프래즐 닷지 × (무기 공격력% 스킬)
+      let statMult = 1;
+      Object.entries(DMG_CALC.STATIC_MULT).forEach(([name, v]) => {
+        statMult *= 1 + dcScaled(lv, name, v) / 100;
+      });
+
+      // 동적 배율 = 배수 × 혼신 × 가산 그룹
+      const haisui = lv["배수"]
+        ? dcInterp(DMG_CALC.HAISUI, hp) * Math.sqrt(Math.min(lv["배수"], 30) / 30)
+        : 0;
+      const konshin = lv["혼신"] && hp >= 25
+        ? dcInterp(DMG_CALC.KONSHIN, hp) * Math.sqrt(Math.min(lv["혼신"], 30) / 30)
+        : 0;
+      let addGroup = 0;
+      Object.entries(DMG_CALC.DYN_ADD).forEach(([name, v]) => {
+        addGroup += dcScaled(lv, name, v);
+      });
+      addGroup += dcScaled(lv, "적수공권", DMG_CALC.NAKED_FIST[abil]);
+      const dynMult = (1 + haisui / 100) * (1 + konshin / 100) * (1 + addGroup / 100);
+
+      const finalAtk = baseAtk * statMult * dynMult;
+
+      // 대미지 배율 = 크리티컬 × 약점 × 공격 속성 × 상태 특효 × 기타
+      let dmgMult = 1;
+      if (chk("dcCrit")) {
+        dmgMult *= 1 + (DMG_CALC.CRIT.base + dcScaled(lv, DMG_CALC.CRIT.skill, DMG_CALC.CRIT.max)) / 100;
+      }
+      if (chk("dcWeakSpot")) {
+        dmgMult *= 1 + (DMG_CALC.WEAK_SPOT.base + dcScaled(lv, DMG_CALC.WEAK_SPOT.skill, DMG_CALC.WEAK_SPOT.max)) / 100;
+      }
+      if (chk("dcBack")) {
+        dmgMult *= 1 + (DMG_CALC.BACK.base + dcScaled(lv, DMG_CALC.BACK.skill, DMG_CALC.BACK.max)) / 100;
+      }
+      const t = DMG_CALC.ATK_TYPES[type];
+      if (t.skillIsMult) {
+        // 오의: (강화+한돌) 가산 후 연계 공격은 곱연산 (wiki 명시)
+        dmgMult *= (1 + t.base / 100) * (1 + dcScaled(lv, t.skill, t.max) / 100);
+      } else {
+        dmgMult *= 1 + (t.base + (t.skill ? dcScaled(lv, t.skill, t.max) : 0)) / 100;
+      }
+      if (enemy !== "none") {
+        const st = DMG_CALC.STATE[enemy];
+        dmgMult *= 1 + dcScaled(lv, st.skill, st.max) / 100;
+      }
+      if (chk("dcWeakState")) {
+        dmgMult *= 1 + dcScaled(lv, DMG_CALC.STATE.weak.skill, DMG_CALC.STATE.weak.max) / 100;
+      }
+      Object.entries(DMG_CALC.GENERIC_DMG).forEach(([name, v]) => {
+        dmgMult *= 1 + dcScaled(lv, name, v) / 100;
+      });
+
+      const linkTime = chk("dcLinkTime") ? 1.2 : 1;
+      const raw = finalAtk * motion * dmgMult * linkTime;
+
+      // 대미지 상한 = 기본 상한 × (1 + 상한 스킬 합)
+      let capPct = 0;
+      Object.entries(DMG_CALC.CAP_ALL).forEach(([name, v]) => {
+        capPct += dcScaled(lv, name, v);
+      });
+      Object.entries(DMG_CALC.CAP_TYPE[type] || {}).forEach(([name, v]) => {
+        capPct += dcScaled(lv, name, v);
+      });
+      const cap = capBase * (1 + capPct / 100);
+
+      // 상한 후: 유리 속성 × 공격 버프 × 방어 디버프 × 대미지 강화 × 적 경감
+      const post = (x) =>
+        x * (chk("dcElem") ? 1.2 : 1) *
+        (1 + dcNum("dcAtkBuff", 0) / 100) *
+        (1 + dcNum("dcDefDown", 0) / 100) *
+        (1 + dcNum("dcBoost", 0) / 100) *
+        (1 - dcNum("dcEnemyCut", 0) / 100);
+
+      const HARD_CAP = 99999999;
+      const fin = (mult) => Math.min(HARD_CAP, post(Math.min(raw * mult, cap)));
+      const finAvg = fin(1);
+      const finMin = fin(0.95);
+      const finMax = fin(1.05);
+      const capped = raw >= cap;
+
+      const pursuitLv = lv[DMG_CALC.PURSUIT.skill];
+      const pursuit = pursuitLv
+        ? { rate: dcScaled(lv, DMG_CALC.PURSUIT.skill, DMG_CALC.PURSUIT.rate), dmg: finAvg * DMG_CALC.PURSUIT.dmg / 100 }
+        : null;
+
+      return { statMult, dynMult, haisui, konshin, addGroup, finalAtk, dmgMult, raw, cap, capPct, capped, finMin, finAvg, finMax, pursuit };
+    }
+
+    function renderCalc() {
+      const el = document.getElementById("dcResults");
+      if (!el) return;
+      const r = computeDamage();
+      const n = (x) => Math.round(x).toLocaleString("ko-KR");
+      const p = (x) => (Math.round(x * 100) / 100).toLocaleString("ko-KR");
+      el.innerHTML = `
+        <div class="calc-stat"><div class="k">최종 공격력</div><div class="v">${n(r.finalAtk)}</div>
+          <div class="sub">정적 ×${r.statMult.toFixed(3)} · 동적 ×${r.dynMult.toFixed(3)} (배수 +${p(r.haisui)}% · 혼신 +${p(r.konshin)}% · 가산 +${p(r.addGroup)}%)</div></div>
+        <div class="calc-stat"><div class="k">상한 전 대미지</div><div class="v">${n(r.raw)}</div>
+          <div class="sub">대미지 배율 ×${r.dmgMult.toFixed(3)}</div></div>
+        <div class="calc-stat${r.capped ? " hit" : ""}"><div class="k">대미지 상한</div><div class="v">${n(r.cap)}</div>
+          <div class="sub">상한 보정 +${p(r.capPct)}%${r.capped ? " · 상한 도달" : ""}</div></div>
+        <div class="calc-stat"><div class="k">최종 대미지</div><div class="v">${n(r.finAvg)}</div>
+          <div class="sub">난수 범위 ${n(r.finMin)} ~ ${n(r.finMax)}</div></div>
+        ${r.pursuit ? `<div class="calc-stat"><div class="k">추격 (추가 대미지)</div><div class="v">${n(r.pursuit.dmg)}</div>
+          <div class="sub">발생률 ${p(r.pursuit.rate)}% · 최종 대미지의 20%</div></div>` : ""}`;
+    }
+
+    document.querySelectorAll("#calcPanel input, #calcPanel select").forEach((el) => {
+      el.addEventListener("input", renderCalc);
+    });
+
+    const masterCharSelect = document.getElementById("masterChar");
+    masterCharSelect.innerHTML = MASTER_SKILLS.chars
+      .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
+      .join("");
+    masterCharSelect.addEventListener("change", () => {
+      state.masterChar = masterCharSelect.value;
+      renderAll();
+      const chr = masterCharData();
+      if (chr) setToast(`${chr.name} 마스터 스킬 표시`, "ok");
+    });
 
     document.getElementById("modalClose").addEventListener("click", closePicker);
     document.getElementById("modalCancel").addEventListener("click", closePicker);

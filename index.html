@@ -1111,12 +1111,30 @@
       }
     }
 
+    function contributeExclusivePlus(map, slot) {
+      const parts = EXCLUSIVE_PLUS_COMPONENTS[slot.name];
+      if (!parts) return false;
+      parts.forEach((name) => {
+        const sk = resolveSkill(name);
+        contributeSkill(map, {
+          skillId: sk.id,
+          name: sk.name,
+          category: sk.category,
+          max: sk.max,
+        }, 15);
+      });
+      return true;
+    }
+
     function aggregateSkills() {
       const map = new Map();
       state.weaponSkills.forEach((s) => contributeSkill(map, s, effectiveSlotLevel(s, "weapon")));
       state.blessingSkills.forEach((s) => contributeSkill(map, s, effectiveSlotLevel(s, "blessing")));
       state.summonSkills.forEach((s) => contributeSkill(map, s, effectiveSlotLevel(s, "summon")));
-      state.sigils.forEach((s) => contributeSkill(map, s, effectiveSlotLevel(s, "sigil")));
+      state.sigils.forEach((s) => {
+        if (contributeExclusivePlus(map, s)) return;
+        contributeSkill(map, s, effectiveSlotLevel(s, "sigil"));
+      });
 
       return Array.from(map.values()).sort((a, b) => {
         if (a.unique !== b.unique) return a.unique ? -1 : 1;

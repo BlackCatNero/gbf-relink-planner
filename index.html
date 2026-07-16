@@ -1894,13 +1894,16 @@
       return `+${Math.round(Number(v) || 0)}%`;
     }
 
+    /** 진 24칸 중 왼쪽 칸(짝수 인덱스)에 기본 분류 스킬이 있으면 1개로 계산 */
     function countBasicCategorySigils() {
       let n = 0;
-      state.sigils.forEach((s) => {
-        if (!s.skillId) return;
+      for (let i = 0; i < state.sigils.length; i += 2) {
+        const s = state.sigils[i];
+        if (!s || !s.skillId) continue;
         const cat = SKILL_CATALOG.find((c) => c.id === s.skillId);
-        if (cat && cat.category === "basic") n += 1;
-      });
+        const category = cat ? cat.category : s.category;
+        if (category === "basic") n += 1;
+      }
       return n;
     }
 
@@ -1916,8 +1919,8 @@
       if (!text) return out;
       const src = String(text);
 
-      // 기본 능력 타입 진 개수 비례 (마스터)
-      const perSigil = src.match(/기본\s*능력\s*타입의\s*진[^.]{0,40}?1개\s*당\s*\+(\d+(?:\.\d+)?)\s*%[^.]{0,20}?최대\s*(\d+)\s*개/);
+      // 기본 능력 타입 진 개수 비례 (마스터) — 문장 중간 마침표 허용
+      const perSigil = src.match(/기본\s*능력\s*타입의\s*진[\s\S]{0,80}?1개\s*당\s*\+(\d+(?:\.\d+)?)\s*%[\s\S]{0,30}?최대\s*(\d+)\s*개/);
       if (perSigil) {
         const per = Number(perSigil[1]) || 0;
         const maxN = Number(perSigil[2]) || 0;

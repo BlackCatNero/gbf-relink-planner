@@ -1854,7 +1854,8 @@
           });
         });
         localStorage.setItem(STORAGE_KEY, JSON.stringify({
-          v: 6,
+          v: 7,
+          ms: 1,
           n: state.buildName,
           note: state.notes,
           s: bits.join(""),
@@ -1877,7 +1878,11 @@
         if (!payload) return false;
         if (typeof payload.s === "string") {
           try {
-            applyMasterBits(payload.s);
+            applyMasterBits(payload.s, {
+              schemaV: Number(payload.v) || 6,
+              masterSchema: payload.ms != null ? payload.ms : null,
+              preferLegacy102: false,
+            });
           } catch (_) { /* 마스터 비트만 스킵 */ }
         }
         state.buildName = payload.n || payload.buildName || "";
@@ -2205,7 +2210,8 @@
 
     function encodeBuild() {
       const payload = {
-        v: 6,
+        v: 7,
+        ms: 1,
         n: state.buildName,
         note: state.notes,
         s: masterBitsString(),
@@ -2222,7 +2228,8 @@
 
     function encodeShareBuild() {
       const payload = {
-        v: 6,
+        v: 7,
+        ms: 1,
         n: state.buildName || "",
         note: (state.notes || "").slice(0, 160),
         s: masterBitsString(),
@@ -2242,7 +2249,9 @@
     }
 
     function decodeB64Payload(rawB64) {
-      let b = rawB64.replace(/-/g, "+").replace(/_/g, "/");
+      let b = String(rawB64 || "").replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+      // URL/붙여넣기에서 +가 공백으로 바뀐 경우 복구
+      b = b.replace(/ /g, "+");
       while (b.length % 4) b += "=";
       return JSON.parse(decodeURIComponent(escape(atob(b))));
     }
@@ -2261,22 +2270,7 @@
       return `${plannerBaseUrl()}?c=${encodeURIComponent(encodeShareBuild())}`;
     }
 
-    function decodeBuild(code) {
-      const raw = code.trim();
-      if (/^GBFR[1-5]\./.test(raw)) {
-        const prefix = raw.slice(0, 6);
-        const payload = JSON.parse(
-          prefix === "GBFR1."
-            ? atob(raw.slice(6))
-            : decodeURIComponent(escape(atob(raw.slice(6))))
-        );
-        applyMasterBits(payload.s);
-        return;
-      }
-      if (!raw.startsWith("GBFR6.")) throw new Error("지원하지 않는 코드 형식입니다.");
-      const payload = decodeB64Payload(raw.slice(6));
-      if (payload.v !== 6 || typeof payload.s !== "string") throw new Error("코드가 손상되었습니다.");
-      applyMasterBits(payload.s);
+    function applyGearPayload(payload) {
       state.buildName = payload.n || payload.buildName || "";
       state.notes = payload.note || payload.notes || "";
       if (typeof payload.w === "number") {
@@ -2330,6 +2324,43 @@
       if (payload.mc) state.masterChar = payload.mc;
     }
 
+    function decodeBuild(code) {
+      const raw = String(code || "").trim().replace(/\s+/g, "");
+      if (/^GBFR[1-5]\./.test(raw)) {
+        const prefix = raw.slice(0, 6);
+        const payload = JSON.parse(
+          prefix === "GBFR1."
+            ? atob(raw.slice(6))
+            : decodeURIComponent(escape(atob(raw.slice(6))))
+        );
+        if (typeof payload.s === "string") {
+          applyMasterBits(payload.s, { schemaV: 6, preferLegacy102: true });
+        }
+        if (payload.w != null || payload.ws || payload.sg) applyGearPayload(payload);
+        return;
+      }
+      if (!raw.startsWith("GBFR6.")) throw new Error("지원하지 않는 코드 형식입니다.");
+      const payload = decodeB64Payload(raw.slice(6));
+      const schemaV = Number(payload.v) || 6;
+      if (schemaV !== 6 && schemaV !== 7) throw new Error("코드가 손상되었습니다.");
+      if (typeof payload.s !== "string") throw new Error("코드가 손상되었습니다.");
+
+      let masterOk = true;
+      try {
+        applyMasterBits(payload.s, {
+          schemaV,
+          masterSchema: payload.ms != null ? payload.ms : null,
+          preferLegacy102: schemaV < 7 && payload.ms == null,
+        });
+      } catch (_) {
+        masterOk = false;
+      }
+      applyGearPayload(payload);
+      if (!masterOk) {
+        setToast("장비는 불러왔지만 마스터 스킬 일부는 구조를 맞추지 못했습니다.", "err");
+      }
+    }
+
     function loadFromUrl() {
       try {
         const params = new URLSearchParams(location.search);
@@ -2358,27 +2389,73 @@
       };
     }
 
-    function migrateMasterBits(bits) {
+    function migrateLayoutAtoC(bits) {
+      // 구형: r1=4, r2=10, r3=10, ex=10 → 현행: r1=4, r2=8, r3=8, ex=14
+      let i = 0;
+      const out = [];
+      for (let t = 0; t < TREES.length; t++) {
+        out.push(bits.slice(i, i + 4)); i += 4;
+        out.push(bits.slice(i, i + 8)); i += 10;
+        out.push(bits.slice(i, i + 8)); i += 10;
+        out.push(bits.slice(i, i + 10), "0000"); i += 10;
+      }
+      return out.join("");
+    }
+
+    function migrateLayoutBtoC(bits) {
+      // r1=4, r2=8, r3=8, ex=10 → ex=14
+      let i = 0;
+      const out = [];
+      for (let t = 0; t < TREES.length; t++) {
+        out.push(bits.slice(i, i + 20)); i += 20;
+        out.push(bits.slice(i, i + 10), "0000"); i += 10;
+      }
+      return out.join("");
+    }
+
+    function migrateMasterBits(bits, opts = {}) {
       const expected = TREES.length * RANKS.reduce((s, rank) => s + rank.count, 0);
-      if (bits.length === expected) return bits;
-      // EX-10 layout (before the EX rank was expanded to 14): pad each tree's EX with 0s
-      const v6PerTree = 4 + 8 + 8 + 10;
-      if (bits.length === TREES.length * v6PerTree) {
-        let i = 0;
-        const out = [];
-        for (let t = 0; t < TREES.length; t++) {
-          out.push(bits.slice(i, i + 20)); i += 20; // r1+r2+r3
-          out.push(bits.slice(i, i + 10), "0000"); i += 10; // ex 10 -> 14
-        }
-        return out.join("");
+      const schemaV = Number(opts.schemaV) || 6;
+      const masterSchema = opts.masterSchema != null ? Number(opts.masterSchema) : null;
+      const preferLegacy102 = !!opts.preferLegacy102;
+
+      if (!bits || typeof bits !== "string") return "";
+
+      // 현행 스키마 (v7 또는 ms:1)
+      if (schemaV >= 7 || masterSchema === 1) {
+        if (bits.length === expected) return bits;
+        if (bits.length === 90) return migrateLayoutBtoC(bits);
+        return bits;
+      }
+
+      // 구형 v6 이하
+      if (bits.length === 90) return migrateLayoutBtoC(bits);
+      if (bits.length === expected) {
+        // 102비트는 구형(4+10+10+10)과 현행(4+8+8+14)이 겹침
+        // 빌드 코드 붙여넣기: 구형으로 간주 / 로컬 저장: 현행 유지
+        return preferLegacy102 ? migrateLayoutAtoC(bits) : bits;
+      }
+      // 그 외 길이: 가능한 구형 조합 시도
+      if (bits.length === TREES.length * (4 + 10 + 10 + 10)) {
+        return migrateLayoutAtoC(bits);
       }
       return bits;
     }
 
-    function applyMasterBits(bits) {
-      const normalized = migrateMasterBits(bits);
+    function applyMasterBits(bits, opts = {}) {
+      const normalized = migrateMasterBits(bits, opts);
       const expected = TREES.length * RANKS.reduce((s, rank) => s + rank.count, 0);
-      if (normalized.length !== expected) throw new Error("코드 길이가 현재 구조와 맞지 않습니다.");
+      if (normalized.length !== expected) {
+        throw new Error("코드 길이가 현재 구조와 맞지 않습니다.");
+      }
+      // 초기화 후 적용
+      TREES.forEach((tree) => {
+        RANKS.forEach((rank) => {
+          for (let i = 0; i < rank.count; i++) {
+            state.selected[key(tree.id, rank.id, i)] = false;
+          }
+        });
+      });
       let idx = 0;
       TREES.forEach((tree) => {
         RANKS.forEach((rank) => {

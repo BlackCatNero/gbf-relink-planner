@@ -765,6 +765,22 @@
       color: var(--ink-soft);
     }
 
+    /* 이미지 캡처 중: hover/focus 툴팁·요약 모드 상세 텍스트 강제 숨김 */
+    html.is-capturing .tree-head .style-tip {
+      display: none !important;
+      visibility: hidden !important;
+    }
+    html.is-capturing[data-view="summary"] .node .ntxt {
+      display: none !important;
+      visibility: hidden !important;
+      font-size: 0 !important;
+      height: 0 !important;
+      width: 0 !important;
+      overflow: hidden !important;
+      position: absolute !important;
+      opacity: 0 !important;
+    }
+
     .rank {
       padding: 5px;
       border: 1px solid var(--line);
@@ -1846,7 +1862,9 @@
             const selected = state.selected[k];
             const nd = data && data[i];
             const tip = nd ? ` title="${escapeHtml(nd.k)}"` : "";
-            return `<button type="button" class="node${selected ? " selected" : ""}" data-key="${k}" aria-pressed="${selected}"${tip}><span class="ntxt">${escapeHtml(nd ? nd.k : "")}</span></button>`;
+            // 요약 모드에서는 칸에 상세 텍스트를 넣지 않음(툴팁 title만 유지)
+            const label = (isDetailView() && nd) ? escapeHtml(nd.k) : "";
+            return `<button type="button" class="node${selected ? " selected" : ""}" data-key="${k}" aria-pressed="${selected}"${tip}><span class="ntxt">${label}</span></button>`;
           }).join("");
           return `<section class="rank${active ? " is-active" : ""}"><div class="nodes">${nodes}</div></section>`;
         }).join("");
@@ -2768,7 +2786,30 @@
 
       const target = document.getElementById("capture-root");
       const captureBg = getComputedStyle(document.documentElement).getPropertyValue("--capture-bg").trim() || "#222b37";
-      const canvas = await html2canvas(target, {
+      const detailExport = isDetailView();
+      document.documentElement.classList.add("is-capturing");
+      // 캡처 직전: 요약 모드면 노드 텍스트·스타일 툴팁을 DOM에서 제거
+      const ntxtRestore = [];
+      const titleRestore = [];
+      const styleTipRestore = [];
+      if (!detailExport) {
+        document.querySelectorAll("#capture-root .node .ntxt").forEach((el) => {
+          ntxtRestore.push([el, el.textContent]);
+          el.textContent = "";
+        });
+        document.querySelectorAll("#capture-root .node[title]").forEach((el) => {
+          titleRestore.push([el, el.getAttribute("title")]);
+          el.removeAttribute("title");
+        });
+      }
+      document.querySelectorAll("#capture-root .tree-head .style-tip").forEach((el) => {
+        styleTipRestore.push(el);
+        el.style.display = "none";
+      });
+
+      let canvas;
+      try {
+        canvas = await html2canvas(target, {
         backgroundColor: captureBg,
         scale: 3,
         useCORS: true,
@@ -2778,9 +2819,9 @@
         windowWidth: target.scrollWidth,
         windowHeight: target.scrollHeight,
         onclone: (_doc, cloned) => {
-          const detailExport = isDetailView();
           try {
             _doc.documentElement.setAttribute("data-view", getViewMode());
+            _doc.documentElement.classList.add("is-capturing");
           } catch (_) { /* ignore */ }
 
           cloned.style.paddingBottom = "16px";
@@ -2835,6 +2876,8 @@
           cloned.querySelectorAll(".line-row .lv, .sigil-slot .slv").forEach((el) => {
             el.style.fontSize = "0.6rem";
           });
+          // 스타일 툴팁은 캡처에서 완전 제거 (hover 오적용 방지)
+          cloned.querySelectorAll(".tree-head .style-tip").forEach((el) => el.remove());
           if (detailExport) {
             cloned.querySelectorAll(".node").forEach((el) => {
               el.style.overflow = "visible";
@@ -2851,12 +2894,14 @@
             });
           } else {
             cloned.querySelectorAll(".node .ntxt").forEach((el) => {
+              el.textContent = "";
               el.style.display = "none";
+              el.style.visibility = "hidden";
+              el.style.fontSize = "0";
+              el.style.opacity = "0";
             });
+            cloned.querySelectorAll(".node[title]").forEach((el) => el.removeAttribute("title"));
           }
-          cloned.querySelectorAll(".tree-head .style-tip").forEach((el) => {
-            el.style.display = "none";
-          });
           cloned.querySelectorAll(".weapon-cols").forEach((el) => {
             el.style.display = "flex";
             el.style.flexDirection = "row";
@@ -2921,6 +2966,12 @@
           }
         },
       });
+      } finally {
+        document.documentElement.classList.remove("is-capturing");
+        ntxtRestore.forEach(([el, text]) => { el.textContent = text; });
+        titleRestore.forEach(([el, title]) => { if (title != null) el.setAttribute("title", title); });
+        styleTipRestore.forEach((el) => { el.style.display = ""; });
+      }
       const link = document.createElement("a");
       const safe = (state.buildName || "relink-build").replace(/[\\/:*?"<>|]/g, "_");
       link.download = `${safe}.png`;

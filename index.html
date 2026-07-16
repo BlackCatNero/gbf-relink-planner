@@ -2768,7 +2768,7 @@
       try {
         if (typeof QRCode !== "undefined" && QRCode.toDataURL) {
           qrDataUrl = await QRCode.toDataURL(shareUrl, {
-            width: 160,
+            width: 320,
             margin: 1,
             errorCorrectionLevel: "M",
             color: { dark: "#12161c", light: "#ffffff" },
@@ -2782,7 +2782,7 @@
       const captureBg = getComputedStyle(document.documentElement).getPropertyValue("--capture-bg").trim() || "#222b37";
       const canvas = await html2canvas(target, {
         backgroundColor: captureBg,
-        scale: 2,
+        scale: 3,
         useCORS: true,
         logging: false,
         scrollX: 0,

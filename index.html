@@ -812,6 +812,33 @@
       position: absolute !important;
       opacity: 0 !important;
     }
+    /* 상세 모드 이미지: 노드 박스가 텍스트 높이에 맞게 늘어남 */
+    html.is-capturing[data-view="detail"] .node {
+      height: auto !important;
+      min-height: 36px !important;
+      overflow: hidden !important;
+      align-items: flex-start !important;
+      padding: 5px 7px 7px !important;
+      box-sizing: border-box !important;
+    }
+    html.is-capturing[data-view="detail"] .node .ntxt {
+      display: block !important;
+      -webkit-line-clamp: unset !important;
+      line-clamp: unset !important;
+      -webkit-box-orient: unset !important;
+      overflow: visible !important;
+      white-space: normal !important;
+      word-break: keep-all !important;
+      overflow-wrap: break-word !important;
+      height: auto !important;
+      max-height: none !important;
+      line-height: 1.35 !important;
+    }
+    html.is-capturing[data-view="detail"] .rank,
+    html.is-capturing[data-view="detail"] .nodes {
+      height: auto !important;
+      overflow: visible !important;
+    }
 
     .rank {
       padding: 5px;
@@ -2911,17 +2938,32 @@
           cloned.querySelectorAll(".tree-head .style-tip").forEach((el) => el.remove());
           if (detailExport) {
             cloned.querySelectorAll(".node").forEach((el) => {
-              el.style.overflow = "visible";
+              el.style.height = "auto";
+              el.style.minHeight = "36px";
+              el.style.overflow = "hidden";
+              el.style.alignItems = "flex-start";
               el.style.lineHeight = "1.35";
-              el.style.paddingBottom = "4px";
+              el.style.padding = "5px 7px 7px";
               el.style.boxSizing = "border-box";
+              el.style.whiteSpace = "normal";
             });
             cloned.querySelectorAll(".node .ntxt").forEach((el) => {
+              el.style.display = "block";
+              el.style.webkitLineClamp = "unset";
+              el.style.lineClamp = "unset";
+              el.style.webkitBoxOrient = "unset";
+              el.style.overflow = "visible";
+              el.style.whiteSpace = "normal";
+              el.style.wordBreak = "keep-all";
+              el.style.overflowWrap = "break-word";
+              el.style.height = "auto";
+              el.style.maxHeight = "none";
               el.style.lineHeight = "1.35";
               el.style.paddingBottom = "1px";
+            });
+            cloned.querySelectorAll(".rank, .nodes").forEach((el) => {
+              el.style.height = "auto";
               el.style.overflow = "visible";
-              el.style.webkitLineClamp = "unset";
-              el.style.display = "block";
             });
           } else {
             cloned.querySelectorAll(".node .ntxt").forEach((el) => {

@@ -689,10 +689,12 @@
     .rank-side .rank-count.over { color: var(--danger); }
 
     .tree-head {
+      position: relative;
       padding: 6px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: var(--surface);
+      cursor: help;
     }
 
     .tree-head .style-name {
@@ -707,6 +709,59 @@
     .tree-head[data-tree="gaksung"] .style-name { color: var(--gaksung); }
     .tree-head[data-tree="jinsu"] .style-name { color: var(--jinsu); }
     .tree-head[data-tree="geugui"] .style-name { color: var(--geugui); }
+
+    .tree-head .style-tip {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: calc(100% + 6px);
+      transform: translateX(-50%);
+      z-index: 40;
+      width: max(220px, 100%);
+      min-width: 200px;
+      max-width: 320px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      text-align: left;
+      pointer-events: none;
+    }
+
+    .tree-head:hover .style-tip,
+    .tree-head:focus-within .style-tip {
+      display: grid;
+      gap: 8px;
+    }
+
+    .tree-head .style-tip .tip-row {
+      display: grid;
+      gap: 2px;
+    }
+
+    .tree-head .style-tip .tip-star {
+      font-family: Sora, "Noto Sans KR", sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--ink-soft);
+    }
+
+    .tree-head[data-tree="gaksung"] .style-tip .tip-star { color: var(--gaksung); }
+    .tree-head[data-tree="jinsu"] .style-tip .tip-star { color: var(--jinsu); }
+    .tree-head[data-tree="geugui"] .style-tip .tip-star { color: var(--geugui); }
+
+    .tree-head .style-tip .tip-body {
+      font-size: 0.68rem;
+      font-weight: 500;
+      line-height: 1.4;
+      color: var(--ink);
+      white-space: normal;
+    }
+
+    .tree-head .style-tip.is-empty .tip-body {
+      color: var(--ink-soft);
+    }
 
     .rank {
       padding: 5px;
@@ -1764,15 +1819,15 @@
       const root = document.getElementById("trees");
       const chr = masterCharData();
       const heads = TREES.map((tree, ti) => {
-        const styleFx = chr && chr.style[ti] && chr.style[ti].length
-          ? chr.style[ti].map((tx, si) => `${"★".repeat(si + 1)} ${tx}`).join("\n")
-          : "";
-        const tip = styleFx ? ` title="${escapeHtml(styleFx)}"` : "";
+        const styleLines = chr && Array.isArray(chr.style) && chr.style[ti] ? chr.style[ti].filter(Boolean) : [];
         const custom = chr && Array.isArray(chr.styleTitles) ? chr.styleTitles[ti] : "";
-        const title = custom
-          ? `${tree.label}: ${custom}`
-          : tree.label;
-        return `<header class="tree-head" data-tree="${tree.id}"${tip}><div class="style-name">${escapeHtml(title)}</div></header>`;
+        const title = custom ? `${tree.label}: ${custom}` : tree.label;
+        const tipHtml = styleLines.length
+          ? `<div class="style-tip">${styleLines.map((tx, si) =>
+              `<div class="tip-row"><div class="tip-star">${"★".repeat(si + 1)}</div><div class="tip-body">${escapeHtml(tx)}</div></div>`
+            ).join("")}</div>`
+          : `<div class="style-tip is-empty"><div class="tip-row"><div class="tip-body">상세 정보가 아직 없습니다.</div></div></div>`;
+        return `<header class="tree-head" data-tree="${tree.id}" tabindex="0"><div class="style-name">${escapeHtml(title)}</div>${tipHtml}</header>`;
       }).join("");
 
       const rows = RANKS.map((rank, ri) => {

@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script>
     (function () {
       try {
@@ -2210,6 +2211,187 @@
       return bits.join("");
     }
 
+    function toBase64Url(binStr) {
+      return btoa(binStr).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    function fromBase64Url(b64) {
+      let b = String(b64 || "").replace(/\s+/g, "").replace(/-/g, "+").replace(/_/g, "/");
+      while (b.length % 4) b += "=";
+      return atob(b);
+    }
+
+    function packBitString(bitStr) {
+      const bytes = [];
+      for (let i = 0; i < bitStr.length; i += 8) {
+        let v = 0;
+        for (let j = 0; j < 8 && i + j < bitStr.length; j++) {
+          if (bitStr[i + j] === "1") v |= (1 << (7 - j));
+        }
+        bytes.push(v);
+      }
+      return toBase64Url(String.fromCharCode.apply(null, bytes));
+    }
+
+    function unpackBitString(packed, bitLen) {
+      const bin = fromBase64Url(packed);
+      let out = "";
+      for (let i = 0; i < bin.length; i++) {
+        const v = bin.charCodeAt(i);
+        for (let j = 0; j < 8; j++) {
+          if (out.length >= bitLen) break;
+          out += (v & (1 << (7 - j))) ? "1" : "0";
+        }
+      }
+      while (out.length < bitLen) out += "0";
+      return out.slice(0, bitLen);
+    }
+
+    function skillRefIndex(skillId) {
+      const i = SKILL_CATALOG.findIndex((s) => s.id === skillId);
+      if (i >= 0) return i;
+      const j = SUMMON_STATS.findIndex((s) => s.id === skillId);
+      if (j >= 0) return 10000 + j;
+      return -1;
+    }
+
+    function skillFromRef(ref) {
+      const n = Number(ref);
+      if (!Number.isFinite(n) || n < 0) return null;
+      if (n >= 10000) {
+        const st = SUMMON_STATS[n - 10000];
+        if (!st) return null;
+        return { skillId: st.id, name: st.name, category: null, max: 0, priority: !!st.priority, isStat: true };
+      }
+      const sk = SKILL_CATALOG[n];
+      if (!sk) return null;
+      return {
+        skillId: sk.id,
+        name: sk.name,
+        category: sk.weaponOnly ? "unique" : sk.category,
+        max: sk.max,
+        priority: !!sk.priority,
+        isStat: false,
+      };
+    }
+
+    function packSparseSkills(slots, { skipLocked = false, includeLevel = true } = {}) {
+      const parts = [];
+      slots.forEach((s, i) => {
+        if (!s || !s.skillId) return;
+        if (skipLocked && s.locked) return;
+        const ref = skillRefIndex(s.skillId);
+        if (ref < 0) return;
+        parts.push(includeLevel ? `${i}.${ref}.${Number(s.level) || 0}` : `${i}.${ref}`);
+      });
+      return parts.join(",");
+    }
+
+    function expectedMasterBitLen() {
+      return TREES.length * RANKS.reduce((s, rank) => s + rank.count, 0);
+    }
+
+    function buildCompactSharePayload() {
+      const charIdx = (MASTER_SKILLS.chars || []).findIndex((c) => c.id === state.masterChar);
+      const lines = ["8"];
+      if (state.buildName) lines.push(`n=${encodeURIComponent(state.buildName)}`);
+      const note = (state.notes || "").slice(0, 80);
+      if (note) lines.push(`o=${encodeURIComponent(note)}`);
+      lines.push(`b=${packBitString(masterBitsString())}`);
+      lines.push(`w=${Number(state.weapon) || 0}`);
+      if (charIdx > 0) lines.push(`c=${charIdx}`);
+      const W = packSparseSkills(state.weaponSkills, { skipLocked: true, includeLevel: true });
+      const B = packSparseSkills(state.blessingSkills, { includeLevel: true });
+      const G = packSparseSkills(state.sigils, { includeLevel: true });
+      const M = packSparseSkills(state.summonSkills, { includeLevel: true });
+      const T = packSparseSkills(state.summonStats, { includeLevel: false });
+      if (W) lines.push(`W=${W}`);
+      if (B) lines.push(`B=${B}`);
+      if (G) lines.push(`G=${G}`);
+      if (M) lines.push(`M=${M}`);
+      if (T) lines.push(`T=${T}`);
+      return lines.join("|");
+    }
+
+    function applyCompactSharePayload(compact) {
+      const parts = String(compact || "").split("|");
+      if (!parts.length || parts[0] !== "8") throw new Error("지원하지 않는 짧은 링크 형식입니다.");
+      const map = {};
+      parts.slice(1).forEach((p) => {
+        const eq = p.indexOf("=");
+        if (eq < 0) return;
+        map[p.slice(0, eq)] = p.slice(eq + 1);
+      });
+
+      const bitLen = expectedMasterBitLen();
+      if (map.b) {
+        applyMasterBits(unpackBitString(map.b, bitLen), { schemaV: 7, masterSchema: 1 });
+      }
+
+      state.buildName = decodeURIComponent(map.n || "");
+      state.notes = decodeURIComponent(map.o || "");
+      state.weapon = Number(map.w) || 0;
+      state.weaponSkills = makeWeaponSlots(state.weapon);
+      state.blessingSkills = makeBlessingSlots();
+      state.sigils = Array.from({ length: 24 }, emptySlot);
+      state.summonSkills = Array.from({ length: 4 }, emptySlot);
+      state.summonStats = Array.from({ length: 4 }, () => emptyStatSlot());
+
+      const charList = MASTER_SKILLS.chars || [];
+      const ci = Number(map.c);
+      if (Number.isFinite(ci) && charList[ci]) state.masterChar = charList[ci].id;
+
+      function fillSkills(key, slots, withLevel) {
+        const raw = map[key] || "";
+        if (!raw) return;
+        raw.split(",").forEach((token) => {
+          if (!token) return;
+          const segs = token.split(".");
+          const idx = Number(segs[0]);
+          const ref = Number(segs[1]);
+          const lv = withLevel ? Number(segs[2]) || 0 : 0;
+          if (!Number.isFinite(idx) || !slots[idx]) return;
+          const sk = skillFromRef(ref);
+          if (!sk || sk.isStat) return;
+          if (slots[idx].locked) return;
+          slots[idx] = {
+            ...slots[idx],
+            skillId: sk.skillId,
+            name: sk.name,
+            category: sk.category,
+            level: withLevel ? lv : (slots[idx].level || EQUIP_LEVEL),
+            max: sk.max || lv,
+          };
+        });
+      }
+
+      fillSkills("W", state.weaponSkills, true);
+      fillSkills("B", state.blessingSkills, true);
+      fillSkills("G", state.sigils, true);
+      fillSkills("M", state.summonSkills, true);
+
+      const rawT = map.T || "";
+      if (rawT) {
+        rawT.split(",").forEach((token) => {
+          if (!token) return;
+          const segs = token.split(".");
+          const idx = Number(segs[0]);
+          const ref = Number(segs[1]);
+          if (!Number.isFinite(idx) || !state.summonStats[idx]) return;
+          const sk = skillFromRef(ref);
+          if (!sk || !sk.isStat) return;
+          state.summonStats[idx] = {
+            skillId: sk.skillId,
+            name: sk.name,
+            priority: !!sk.priority,
+          };
+        });
+      }
+
+      normalizeSigilFixedMaxLevels();
+      normalizeSigilWideSlots();
+    }
+
     function encodeBuild() {
       const payload = {
         v: 7,
@@ -2229,25 +2411,12 @@
     }
 
     function encodeShareBuild() {
-      const payload = {
-        v: 7,
-        ms: 1,
-        n: state.buildName || "",
-        note: (state.notes || "").slice(0, 160),
-        s: masterBitsString(),
-        w: state.weapon,
-        ws: state.weaponSkills.map(slimSkillSlot),
-        bl: state.blessingSkills.map(slimSkillSlot),
-        sg: state.sigils.map(slimSkillSlot),
-        sm: state.summonSkills.map(slimSkillSlot),
-        ss: state.summonStats.map(slimStatSlot),
-        mc: state.masterChar,
-      };
-      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-      return "GBFR6." + b64;
+      const compact = buildCompactSharePayload();
+      if (typeof LZString !== "undefined" && LZString.compressToEncodedURIComponent) {
+        return "GBFRc." + LZString.compressToEncodedURIComponent(compact);
+      }
+      // LZ 미로드 시 압축 없이 base64url
+      return "GBFRc." + toBase64Url(unescape(encodeURIComponent(compact)));
     }
 
     function decodeB64Payload(rawB64) {
@@ -2347,6 +2516,19 @@
 
     function decodeBuild(code) {
       const raw = String(code || "").trim().replace(/\s+/g, "");
+      if (raw.startsWith("GBFRc.")) {
+        const body = raw.slice(6);
+        let compact = null;
+        if (typeof LZString !== "undefined" && LZString.decompressFromEncodedURIComponent) {
+          try { compact = LZString.decompressFromEncodedURIComponent(body); } catch (_) { compact = null; }
+        }
+        if (!compact) {
+          try { compact = decodeURIComponent(escape(fromBase64Url(body))); } catch (_) { compact = null; }
+        }
+        if (!compact) throw new Error("짧은 링크를 해석하지 못했습니다.");
+        applyCompactSharePayload(compact);
+        return;
+      }
       if (/^GBFR[1-5]\./.test(raw)) {
         const prefix = raw.slice(0, 6);
         const payload = JSON.parse(

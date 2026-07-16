@@ -2382,7 +2382,7 @@
 
     function applyCompactSharePayload(compact) {
       const parts = String(compact || "").split("|");
-      if (!parts.length || parts[0] !== "8") throw new Error("지원하지 않는 짧은 링크 형식입니다.");
+      if (!parts.length || parts[0] !== "8") throw new Error("지원하지 않는 압축 코드 형식입니다.");
       const map = {};
       parts.slice(1).forEach((p) => {
         const eq = p.indexOf("=");
@@ -2460,30 +2460,16 @@
     }
 
     function encodeBuild() {
-      const payload = {
-        v: 7,
-        ms: 1,
-        n: state.buildName,
-        note: state.notes,
-        s: masterBitsString(),
-        w: state.weapon,
-        ws: state.weaponSkills.map(slimSkillSlot),
-        bl: state.blessingSkills.map(slimSkillSlot),
-        sg: state.sigils.map(slimSkillSlot),
-        sm: state.summonSkills.map(slimSkillSlot),
-        ss: state.summonStats.map(slimStatSlot),
-        mc: state.masterChar,
-      };
-      return "GBFR6." + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-    }
-
-    function encodeShareBuild() {
       const compact = buildCompactSharePayload();
       if (typeof LZString !== "undefined" && LZString.compressToEncodedURIComponent) {
         return "GBFRc." + LZString.compressToEncodedURIComponent(compact);
       }
       // LZ 미로드 시 압축 없이 base64url
       return "GBFRc." + toBase64Url(unescape(encodeURIComponent(compact)));
+    }
+
+    function encodeShareBuild() {
+      return encodeBuild();
     }
 
     function decodeB64Payload(rawB64) {

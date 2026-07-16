@@ -2778,6 +2778,11 @@
         windowWidth: target.scrollWidth,
         windowHeight: target.scrollHeight,
         onclone: (_doc, cloned) => {
+          const detailExport = isDetailView();
+          try {
+            _doc.documentElement.setAttribute("data-view", getViewMode());
+          } catch (_) { /* ignore */ }
+
           cloned.style.paddingBottom = "16px";
           cloned.style.boxSizing = "border-box";
 
@@ -2830,18 +2835,27 @@
           cloned.querySelectorAll(".line-row .lv, .sigil-slot .slv").forEach((el) => {
             el.style.fontSize = "0.6rem";
           });
-          cloned.querySelectorAll(".node").forEach((el) => {
-            el.style.overflow = "visible";
-            el.style.lineHeight = "1.35";
-            el.style.paddingBottom = "4px";
-            el.style.boxSizing = "border-box";
-          });
-          cloned.querySelectorAll(".node .ntxt").forEach((el) => {
-            el.style.lineHeight = "1.35";
-            el.style.paddingBottom = "1px";
-            el.style.overflow = "visible";
-            el.style.webkitLineClamp = "unset";
-            el.style.display = "block";
+          if (detailExport) {
+            cloned.querySelectorAll(".node").forEach((el) => {
+              el.style.overflow = "visible";
+              el.style.lineHeight = "1.35";
+              el.style.paddingBottom = "4px";
+              el.style.boxSizing = "border-box";
+            });
+            cloned.querySelectorAll(".node .ntxt").forEach((el) => {
+              el.style.lineHeight = "1.35";
+              el.style.paddingBottom = "1px";
+              el.style.overflow = "visible";
+              el.style.webkitLineClamp = "unset";
+              el.style.display = "block";
+            });
+          } else {
+            cloned.querySelectorAll(".node .ntxt").forEach((el) => {
+              el.style.display = "none";
+            });
+          }
+          cloned.querySelectorAll(".tree-head .style-tip").forEach((el) => {
+            el.style.display = "none";
           });
           cloned.querySelectorAll(".weapon-cols").forEach((el) => {
             el.style.display = "flex";

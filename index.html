@@ -16,13 +16,11 @@
         var t = localStorage.getItem("gbf-relink-theme");
         if (t !== "light" && t !== "dark") t = "dark";
         document.documentElement.setAttribute("data-theme", t);
-        var v = localStorage.getItem("gbf-relink-view");
-        if (v !== "detail" && v !== "summary") v = "summary";
-        document.documentElement.setAttribute("data-view", v);
       } catch (e) {
         document.documentElement.setAttribute("data-theme", "dark");
-        document.documentElement.setAttribute("data-view", "summary");
       }
+      // 초기 액세스는 항상 요약 모드
+      document.documentElement.setAttribute("data-view", "summary");
     })();
   </script>
   <style>
@@ -3633,7 +3631,7 @@
     loadPersisted();
     const fromUrl = loadFromUrl();
     applyTheme(getTheme());
-    applyViewMode(getViewMode());
+    applyViewMode("summary");
     renderAll();
     if (fromUrl) setToast("URL에서 빌드를 불러왔습니다.", "ok");
   </script>

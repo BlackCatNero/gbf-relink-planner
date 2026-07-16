@@ -420,15 +420,15 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
-      height: 24px;
+      height: auto;
       min-height: 24px;
-      max-height: 24px;
-      padding: 0 6px;
+      max-height: none;
+      padding: 3px 6px 4px;
       border: 1px solid var(--line);
       border-radius: 6px;
       background: var(--node);
       font-size: 0.66rem;
-      line-height: 1;
+      line-height: 1.35;
       width: 100%;
       box-sizing: border-box;
       color: inherit;
@@ -438,6 +438,7 @@
       appearance: none;
       -webkit-appearance: none;
       margin: 0;
+      overflow: visible;
     }
 
     .line-row.pickable { cursor: pointer; }
@@ -545,8 +546,8 @@
       height: auto;
       min-height: 24px;
       max-height: none;
-      padding: 4px 7px;
-      line-height: 1.3;
+      padding: 5px 7px 6px;
+      line-height: 1.4;
       overflow: visible;
       flex-wrap: wrap;
     }
@@ -1146,7 +1147,7 @@
     <section class="calc-panel" id="calcPanel">
       <div class="calc-head">
         <h2>대미지 계산</h2>
-        <span class="calc-src">계산식: wikiwiki.jp/maglielle 「ジーン・加護 › ダメージ計算」 · 장착 스킬 합산 레벨 자동 반영</span>
+        <span class="calc-src">계산식: wikiwiki.jp/maglielle · 장착 스킬 합산 레벨 자동 반영</span>
       </div>
       <div class="calc-grid">
         <label class="calc-field">기초 공격력<input type="number" id="dcAtk" value="16396" min="1" /></label>
@@ -1203,12 +1204,13 @@
 
     <section class="code-panel">
       <label class="field">빌드 코드
-        <textarea id="codeBox" placeholder="저장하면 코드가 여기에 표시됩니다." spellcheck="false"></textarea>
+        <textarea id="codeBox" placeholder="저장하면 코드가 여기에 표시됩니다. 공유 링크(?c=…)를 붙여 넣어도 불러올 수 있습니다." spellcheck="false"></textarea>
       </label>
       <div class="code-actions">
         <button type="button" class="btn primary" id="btnSave">코드로 저장</button>
         <button type="button" class="btn" id="btnLoad">불러오기</button>
         <button type="button" class="btn ghost" id="btnCopy">클립보드 복사</button>
+        <button type="button" class="btn ghost" id="btnLink">링크로 복사</button>
         <span class="spacer" aria-hidden="true"></span>
         <button type="button" class="btn ghost" id="btnReset">초기화</button>
         <button type="button" class="btn primary" id="btnDownload">이미지 다운로드</button>
@@ -2270,6 +2272,25 @@
       return `${plannerBaseUrl()}?c=${encodeURIComponent(encodeShareBuild())}`;
     }
 
+    function extractBuildInput(text) {
+      const raw = String(text || "").trim();
+      if (!raw) return "";
+      // 공유 링크에서 코드 추출
+      try {
+        if (/^https?:\/\//i.test(raw) || raw.includes("?c=") || raw.includes("&c=") || raw.includes("#c=")) {
+          const url = new URL(raw, plannerBaseUrl());
+          const fromQuery = url.searchParams.get("c") || url.searchParams.get("code");
+          if (fromQuery) return fromQuery;
+          if (url.hash.startsWith("#c=")) return decodeURIComponent(url.hash.slice(3));
+        }
+      } catch (_) { /* ignore */ }
+      const m = raw.match(/[?&]c=([^&\s]+)/i) || raw.match(/#c=([^\s]+)/i);
+      if (m) {
+        try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; }
+      }
+      return raw.replace(/\s+/g, "");
+    }
+
     function applyGearPayload(payload) {
       state.buildName = payload.n || payload.buildName || "";
       state.notes = payload.note || payload.notes || "";
@@ -2522,6 +2543,9 @@
         windowWidth: target.scrollWidth,
         windowHeight: target.scrollHeight,
         onclone: (_doc, cloned) => {
+          cloned.style.paddingBottom = "16px";
+          cloned.style.boxSizing = "border-box";
+
           cloned.querySelectorAll("select.weapon-select").forEach((sel) => {
             const staticEl = _doc.createElement("div");
             staticEl.className = "weapon-select-static";
@@ -2541,23 +2565,48 @@
           cloned.querySelectorAll(".line-row, .sigil-slot").forEach((el) => {
             el.style.transform = "none";
             el.style.boxShadow = "none";
-          });
-          cloned.querySelectorAll(".skill-zone-list .line-row").forEach((el) => {
+            el.style.overflow = "visible";
             el.style.height = "auto";
             el.style.maxHeight = "none";
+            el.style.lineHeight = "1.45";
+            el.style.paddingTop = "4px";
+            el.style.paddingBottom = "6px";
+            el.style.boxSizing = "border-box";
+          });
+          cloned.querySelectorAll(".line-row").forEach((el) => {
+            el.style.minHeight = "26px";
+            el.style.alignItems = "center";
+          });
+          cloned.querySelectorAll(".sigil-slot").forEach((el) => {
             el.style.minHeight = "24px";
-            el.style.lineHeight = "1.3";
-            el.style.padding = "4px 7px";
-            el.style.overflow = "visible";
+          });
+          cloned.querySelectorAll(".skill-zone-list .line-row").forEach((el) => {
+            el.style.minHeight = "26px";
+            el.style.padding = "5px 7px 7px";
             el.style.fontSize = "0.66rem";
           });
-          cloned.querySelectorAll(".skill-zone-list .line-row .name, .skill-zone-list .line-row .lv").forEach((el) => {
-            el.style.lineHeight = "1.3";
-            el.style.paddingTop = "0";
-            el.style.paddingBottom = "0";
+          cloned.querySelectorAll(".line-row .name, .line-row .lv, .sigil-slot .sname, .sigil-slot .slv").forEach((el) => {
+            el.style.lineHeight = "1.45";
+            el.style.paddingTop = "1px";
+            el.style.paddingBottom = "2px";
+            el.style.overflow = "visible";
+            el.style.textOverflow = "clip";
           });
-          cloned.querySelectorAll(".skill-zone-list .line-row .lv").forEach((el) => {
+          cloned.querySelectorAll(".line-row .lv, .sigil-slot .slv").forEach((el) => {
             el.style.fontSize = "0.6rem";
+          });
+          cloned.querySelectorAll(".node").forEach((el) => {
+            el.style.overflow = "visible";
+            el.style.lineHeight = "1.35";
+            el.style.paddingBottom = "4px";
+            el.style.boxSizing = "border-box";
+          });
+          cloned.querySelectorAll(".node .ntxt").forEach((el) => {
+            el.style.lineHeight = "1.35";
+            el.style.paddingBottom = "1px";
+            el.style.overflow = "visible";
+            el.style.webkitLineClamp = "unset";
+            el.style.display = "block";
           });
           cloned.querySelectorAll(".weapon-cols").forEach((el) => {
             el.style.display = "flex";
@@ -2579,9 +2628,12 @@
           const notesTa = cloned.querySelector(".notes-field textarea");
           if (notesTa) {
             notesTa.style.minHeight = "36px";
-            notesTa.style.height = "40px";
-            notesTa.style.maxHeight = "48px";
+            notesTa.style.height = "44px";
+            notesTa.style.maxHeight = "52px";
             notesTa.style.resize = "none";
+            notesTa.style.lineHeight = "1.45";
+            notesTa.style.paddingBottom = "6px";
+            notesTa.style.overflow = "hidden";
           }
 
           if (qrDataUrl) {
@@ -2611,6 +2663,8 @@
               cap.style.color = "var(--ink-soft)";
               cap.style.fontWeight = "600";
               cap.style.marginTop = "2px";
+              cap.style.lineHeight = "1.4";
+              cap.style.paddingBottom = "2px";
               wrap.appendChild(img);
               wrap.appendChild(cap);
               master.appendChild(wrap);
@@ -2777,7 +2831,7 @@
           <div class="sub">상한 보정 +${p(r.capPct)}%${r.capped ? " · 상한 도달" : ""}</div></div>
         <div class="calc-stat"><div class="k">최종 대미지</div><div class="v">${n(r.finAvg)}</div>
           <div class="sub">난수 범위 ${n(r.finMin)} ~ ${n(r.finMax)}</div></div>
-        ${r.pursuit ? `<div class="calc-stat"><div class="k">추격 (추가 대미지)</div><div class="v">${n(r.pursuit.dmg)}</div>
+        ${r.pursuit ? `<div class="calc-stat"><div class="k">추가 대미지</div><div class="v">${n(r.pursuit.dmg)}</div>
           <div class="sub">발생률 ${p(r.pursuit.rate)}% · 최종 대미지의 20%</div></div>` : ""}`;
     }
 
@@ -2824,7 +2878,8 @@
 
     document.getElementById("btnLoad").addEventListener("click", () => {
       try {
-        decodeBuild(document.getElementById("codeBox").value);
+        const input = extractBuildInput(document.getElementById("codeBox").value);
+        decodeBuild(input);
         renderAll();
         setToast("빌드를 불러왔습니다.", "ok");
       } catch (err) {
@@ -2833,13 +2888,25 @@
     });
 
     document.getElementById("btnCopy").addEventListener("click", async () => {
-      const code = document.getElementById("codeBox").value.trim() || encodeBuild();
-      document.getElementById("codeBox").value = code;
+      const code = extractBuildInput(document.getElementById("codeBox").value) || encodeBuild();
+      const normalized = code.startsWith("GBFR") ? code : encodeBuild();
+      document.getElementById("codeBox").value = normalized;
       try {
-        await navigator.clipboard.writeText(code);
+        await navigator.clipboard.writeText(normalized);
         setToast("클립보드에 복사했습니다.", "ok");
       } catch {
         setToast("복사에 실패했습니다.", "err");
+      }
+    });
+
+    document.getElementById("btnLink").addEventListener("click", async () => {
+      const url = buildShareUrl();
+      document.getElementById("codeBox").value = url;
+      try {
+        await navigator.clipboard.writeText(url);
+        setToast("공유 링크를 복사했습니다.", "ok");
+      } catch {
+        setToast("링크를 생성했습니다. 직접 복사해 주세요.", "ok");
       }
     });
 

@@ -617,8 +617,6 @@
       font-weight: 600;
     }
 
-    html[data-view="summary"] .char-select { display: none; }
-
     .notes-field {
       display: grid;
       gap: 4px;
@@ -2092,8 +2090,14 @@
         ).join("");
 
         const grant = picker.grantLevel != null ? picker.grantLevel : EQUIP_LEVEL;
-        const skills = sortCatalog(SKILL_CATALOG.filter((s) => s.category === picker.category && !s.weaponOnly));
         const fromSigil = picker.target && picker.target.type === "sigil";
+        const skills = sortCatalog(SKILL_CATALOG.filter((s) => {
+          if (s.category !== picker.category || s.weaponOnly) return false;
+          if (picker.category === "exclusive") {
+            return isExclusiveSkillForChar(s.name, state.masterChar);
+          }
+          return true;
+        }));
         body.innerHTML = skills.map((s, i) => {
           const showLv = fromSigil && isSigilFixedMaxSkill(s.name) ? s.max : grant;
           const prev = skills[i - 1];
@@ -2104,7 +2108,7 @@
           const fx = skillEffectText(s.name);
           const fxHtml = fx ? `<span class="pfx">${escapeHtml(fx)}</span>` : "";
           return `${sep}<button type="button" class="pick-item cat-${s.category}${pri}" data-skill="${escapeHtml(s.id)}">${mark}<span class="pname">${escapeHtml(s.name)}</span><span class="pmax">${showLv}</span>${fxHtml}</button>`;
-        }).join("");
+        }).join("") || `<div class="empty-hint" style="padding:12px;text-align:center">이 캐릭터용 전용 진이 없습니다</div>`;
 
         document.querySelectorAll(".modal-tab").forEach((tab) => {
           tab.addEventListener("click", () => {

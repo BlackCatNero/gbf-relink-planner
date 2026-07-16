@@ -237,6 +237,50 @@ const EXCLUSIVE_PLUS_COMPONENTS = {
   "천사장의 각성+": ["천사장의 영위", "천사장의 풍아"],
 };
 
+/** 캐릭터 id → 전용 진 접두어 (해당 캐릭터 전용 스킬만 표시) */
+const CHAR_EXCLUSIVE_PREFIX = {
+  gran: "브레이브",
+  katalina: "수호자",
+  rackam: "조타사",
+  io: "마법사",
+  eugen: "노병",
+  rosetta: "장미",
+  charlotta: "성기사",
+  ghandagoza: "고금무쌍",
+  ferry: "유환",
+  narmaya: "나비칼날",
+  lancelot: "백룡",
+  vane: "용사",
+  percival: "제왕",
+  siegfried: "살룡",
+  cagliostro: "극치",
+  yodarha: "변화무쌍",
+  zeta: "진홍",
+  vaseraga: "짙은 어둠",
+  id: "얼터너티브",
+  eustace: "뇌랑",
+  beatrix: "군청",
+  magilafrira: "고귀한 칼날",
+  galanza: "늑대왕",
+  frau: "전세",
+  fediel: "흑",
+  tweyen: "마안",
+  seofon: "검성",
+  sandalphon: "천사장",
+};
+
+function exclusivePrefixForChar(charId) {
+  return CHAR_EXCLUSIVE_PREFIX[charId] || null;
+}
+
+function isExclusiveSkillForChar(skillName, charId) {
+  const prefix = exclusivePrefixForChar(charId);
+  if (!prefix || !skillName) return false;
+  return skillName === prefix
+    || skillName.startsWith(prefix + " ")
+    || skillName.startsWith(prefix + "의");
+}
+
 // Weapon-only fixed skills (for resolve)
 [
   { name: "카타스트로피 노바", max: 35 },

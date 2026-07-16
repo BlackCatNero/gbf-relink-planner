@@ -448,7 +448,7 @@
       appearance: none;
       -webkit-appearance: none;
       margin: 0;
-      overflow: visible;
+      overflow: hidden;
     }
 
     .line-row.pickable { cursor: pointer; }
@@ -3229,7 +3229,7 @@
           cloned.querySelectorAll(".line-row, .sigil-slot").forEach((el) => {
             el.style.transform = "none";
             el.style.boxShadow = "none";
-            el.style.overflow = "visible";
+            el.style.overflow = "hidden";
             el.style.height = "auto";
             el.style.maxHeight = "none";
             el.style.lineHeight = "1.45";
@@ -3240,24 +3240,49 @@
           cloned.querySelectorAll(".line-row").forEach((el) => {
             el.style.minHeight = "26px";
             el.style.alignItems = "center";
+            el.style.display = "flex";
+            el.style.flexWrap = "nowrap";
+            el.style.gap = "6px";
           });
           cloned.querySelectorAll(".sigil-slot").forEach((el) => {
             el.style.minHeight = "24px";
+            el.style.display = "flex";
+            el.style.alignItems = "center";
+            el.style.gap = "4px";
           });
           cloned.querySelectorAll(".skill-zone-list .line-row").forEach((el) => {
             el.style.minHeight = "26px";
             el.style.padding = "5px 7px 7px";
             el.style.fontSize = "0.66rem";
+            el.style.flexWrap = "wrap";
           });
-          cloned.querySelectorAll(".line-row .name, .line-row .lv, .sigil-slot .sname, .sigil-slot .slv").forEach((el) => {
+          // 긴 스킬명이 수치와 겹치지 않도록 이름은 말줄임, 수치는 고정폭 유지
+          cloned.querySelectorAll(".line-row .name, .sigil-slot .sname").forEach((el) => {
+            el.style.flex = "1 1 0";
+            el.style.minWidth = "0";
+            el.style.maxWidth = "100%";
             el.style.lineHeight = "1.45";
             el.style.paddingTop = "1px";
             el.style.paddingBottom = "2px";
-            el.style.overflow = "visible";
-            el.style.textOverflow = "clip";
+            el.style.overflow = "hidden";
+            el.style.textOverflow = "ellipsis";
+            el.style.whiteSpace = "nowrap";
           });
           cloned.querySelectorAll(".line-row .lv, .sigil-slot .slv").forEach((el) => {
+            el.style.flex = "0 0 auto";
+            el.style.flexShrink = "0";
+            el.style.lineHeight = "1.45";
+            el.style.paddingTop = "1px";
+            el.style.paddingBottom = "2px";
             el.style.fontSize = "0.6rem";
+            el.style.overflow = "visible";
+            el.style.whiteSpace = "nowrap";
+          });
+          cloned.querySelectorAll(".skill-zone-list .line-row .fxline").forEach((el) => {
+            el.style.flex = "1 0 100%";
+            el.style.minWidth = "0";
+            el.style.overflow = "hidden";
+            el.style.textOverflow = "ellipsis";
           });
           // 스타일 툴팁은 캡처에서 완전 제거 (hover 오적용 방지)
           cloned.querySelectorAll(".tree-head .style-tip").forEach((el) => el.remove());

@@ -698,8 +698,10 @@
     .tree-head .style-name {
       font-family: Sora, "Noto Sans KR", sans-serif;
       font-weight: 700;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       text-align: center;
+      line-height: 1.25;
+      padding: 0 2px;
     }
 
     .tree-head[data-tree="gaksung"] .style-name { color: var(--gaksung); }
@@ -1099,7 +1101,7 @@
         <div class="app-bar-actions">
           <div class="view-toggle" role="group" aria-label="표시 모드">
             <button type="button" class="btn ghost view-btn" id="btnViewSummary" data-view="summary">요약</button>
-            <button type="button" class="btn ghost view-btn" id="btnViewDetail" data-view="detail">상세</button>
+            <button type="button" class="btn ghost view-btn" id="btnViewDetail" data-view="detail">상세(WIP)</button>
           </div>
           <button type="button" class="btn ghost theme-toggle" id="btnTheme" aria-label="테마 전환">라이트 모드</button>
         </div>
@@ -1145,7 +1147,7 @@
 
     <section class="calc-panel" id="calcPanel">
       <div class="calc-head">
-        <h2>대미지 계산</h2>
+        <h2>대미지 계산 (미완성)</h2>
         <span class="calc-src">계산식: wikiwiki.jp/maglielle · 장착 스킬 합산 레벨 자동 반영</span>
       </div>
       <div class="calc-grid">
@@ -1766,7 +1768,11 @@
           ? chr.style[ti].map((tx, si) => `${"★".repeat(si + 1)} ${tx}`).join("\n")
           : "";
         const tip = styleFx ? ` title="${escapeHtml(styleFx)}"` : "";
-        return `<header class="tree-head" data-tree="${tree.id}"${tip}><div class="style-name">${tree.label}</div></header>`;
+        const custom = chr && Array.isArray(chr.styleTitles) ? chr.styleTitles[ti] : "";
+        const title = custom
+          ? `${tree.label}: ${custom}`
+          : tree.label;
+        return `<header class="tree-head" data-tree="${tree.id}"${tip}><div class="style-name">${escapeHtml(title)}</div></header>`;
       }).join("");
 
       const rows = RANKS.map((rank, ri) => {

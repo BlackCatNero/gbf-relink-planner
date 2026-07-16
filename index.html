@@ -8,14 +8,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script>
     (function () {
       try {
         var t = localStorage.getItem("gbf-relink-theme");
         if (t !== "light" && t !== "dark") t = "dark";
         document.documentElement.setAttribute("data-theme", t);
+        var v = localStorage.getItem("gbf-relink-view");
+        if (v !== "detail" && v !== "summary") v = "summary";
+        document.documentElement.setAttribute("data-view", v);
       } catch (e) {
         document.documentElement.setAttribute("data-theme", "dark");
+        document.documentElement.setAttribute("data-view", "summary");
       }
     })();
   </script>
@@ -208,6 +213,37 @@
       border-radius: 999px;
     }
 
+    .view-toggle {
+      display: inline-flex;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: var(--surface);
+    }
+
+    .view-toggle .view-btn {
+      border: 0;
+      border-radius: 0;
+      padding: 5px 12px;
+      font-size: 0.72rem;
+      background: transparent;
+      color: var(--ink-soft);
+      box-shadow: none;
+    }
+
+    .view-toggle .view-btn.active {
+      background: var(--active);
+      color: var(--btn-primary-ink);
+    }
+
+    .app-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .brand h1 {
       margin: 0;
       font-family: Sora, "Noto Sans KR", sans-serif;
@@ -262,9 +298,13 @@
 
     .layout-3 {
       display: grid;
-      grid-template-columns: minmax(220px, 0.8fr) minmax(240px, 0.8fr) minmax(480px, 2.1fr);
+      grid-template-columns: minmax(240px, 1.1fr) minmax(170px, 0.7fr) minmax(280px, 1.15fr);
       gap: 10px;
       align-items: stretch;
+    }
+
+    html[data-view="detail"] .layout-3 {
+      grid-template-columns: minmax(220px, 0.8fr) minmax(240px, 0.8fr) minmax(480px, 2.1fr);
     }
 
     .zone {
@@ -518,6 +558,8 @@
       line-height: 1.35;
       color: var(--ink-soft);
     }
+    html[data-view="summary"] .skill-zone-list .line-row .fxline { display: none; }
+    html[data-view="summary"] .skill-zone-list .line-row { flex-wrap: nowrap; }
     /* FextraLife 합산 수치 라인: 값이 눈에 띄도록 강조 */
     .skill-zone-list .line-row .fxline.fx-val {
       color: var(--ok);
@@ -572,6 +614,8 @@
       font-size: 0.7rem;
       font-weight: 600;
     }
+
+    html[data-view="summary"] .char-select { display: none; }
 
     .notes-field {
       display: grid;
@@ -675,36 +719,56 @@
     }
 
     .nodes {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      justify-items: center;
+    }
+
+    html[data-view="detail"] .nodes {
       display: flex;
       flex-direction: column;
       gap: 3px;
+      justify-items: stretch;
     }
 
     .node {
-      width: 100%;
-      height: 34px;             /* 글자 수와 무관하게 모든 노드를 같은 크기로 고정(2줄 기준) */
+      width: 30px;
+      height: 30px;
       display: flex;
-      align-items: center;      /* 텍스트를 블록 세로 중앙에 */
+      align-items: center;
+      justify-content: center;
       border: 1px solid var(--line);
       border-radius: 7px;
       background: var(--node);
       cursor: pointer;
-      padding: 3px 6px;
-      text-align: left;
+      padding: 0;
+      text-align: center;
       color: var(--ink);
       font-family: inherit;
       font-size: 0.56rem;
+      line-height: 1.2;
+    }
+
+    html[data-view="detail"] .node {
+      width: 100%;
+      height: 34px;
+      justify-content: flex-start;
+      padding: 3px 6px;
+      text-align: left;
       line-height: 1.25;
     }
 
-    .node .ntxt {
+    .node .ntxt { display: none; }
+    html[data-view="detail"] .node .ntxt {
       display: -webkit-box;
       -webkit-line-clamp: 2;
-      line-clamp: 2;            /* 표준 속성(호환) */
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      width: 100%;
       flex: 1 1 auto;
-      min-width: 0;             /* 플렉스 안에서 2줄 말줄임이 동작하도록 */
+      min-width: 0;
     }
 
     .node:hover { border-color: var(--hover-border); }
@@ -883,6 +947,33 @@
       gap: 10px;
     }
 
+    html[data-view="summary"] .calc-panel { display: none; }
+
+    .export-qr {
+      display: none;
+      margin-top: 6px;
+      align-self: flex-end;
+      text-align: center;
+    }
+
+    .export-qr img {
+      width: 88px;
+      height: 88px;
+      display: block;
+      border-radius: 6px;
+      background: #fff;
+      padding: 4px;
+      box-sizing: border-box;
+    }
+
+    .export-qr span {
+      display: block;
+      font-size: 0.58rem;
+      color: var(--ink-soft);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
     .calc-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
     .calc-head h2 { font-size: 0.9rem; margin: 0; }
     .calc-src { font-size: 0.62rem; color: var(--ink-soft); }
@@ -1005,7 +1096,13 @@
         <input id="buildName" type="text" maxlength="48" placeholder="빌드 이름을 입력하세요" />
       </label>
       <div class="app-bar-end">
-        <button type="button" class="btn ghost theme-toggle" id="btnTheme" aria-label="테마 전환">라이트 모드</button>
+        <div class="app-bar-actions">
+          <div class="view-toggle" role="group" aria-label="표시 모드">
+            <button type="button" class="btn ghost view-btn" id="btnViewSummary" data-view="summary">요약</button>
+            <button type="button" class="btn ghost view-btn" id="btnViewDetail" data-view="detail">상세</button>
+          </div>
+          <button type="button" class="btn ghost theme-toggle" id="btnTheme" aria-label="테마 전환">라이트 모드</button>
+        </div>
         <div class="brand">
           <h1>빌드 플래너</h1>
           <p>그랑블루 판타지 리링크 · 진 / 스킬 / 마스터 스킬</p>
@@ -1249,6 +1346,7 @@
 
     const STORAGE_KEY = "gbf-relink-planner-v6";
     const THEME_KEY = "gbf-relink-theme";
+    const VIEW_KEY = "gbf-relink-view";
 
     function getTheme() {
       const t = document.documentElement.getAttribute("data-theme");
@@ -1265,6 +1363,23 @@
 
     function toggleTheme() {
       applyTheme(getTheme() === "light" ? "dark" : "light");
+    }
+
+    function getViewMode() {
+      return document.documentElement.getAttribute("data-view") === "detail" ? "detail" : "summary";
+    }
+
+    function isDetailView() {
+      return getViewMode() === "detail";
+    }
+
+    function applyViewMode(mode) {
+      const next = mode === "detail" ? "detail" : "summary";
+      document.documentElement.setAttribute("data-view", next);
+      try { localStorage.setItem(VIEW_KEY, next); } catch (_) { /* ignore */ }
+      document.querySelectorAll(".view-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.view === next);
+      });
     }
 
     const state = {
@@ -1618,17 +1733,19 @@
         root.innerHTML = `<div class="empty-hint">좌측에서 스킬을 선택하면<br />여기에 합산되어 표시됩니다</div>`;
         return;
       }
+      const detail = isDetailView();
       root.innerHTML = list.map((s) => {
         const tone = levelToneClass(s.level, s.max);
-        const fv = sigilValueText(s.name, s.level); // FextraLife: 합산 레벨 기준 현재 수치
-        const g8 = skillEffectText(s.name);         // game8: 최대 효과 설명(툴팁/보조)
+        if (!detail) {
+          return `<div class="line-row cat-${s.category}"><span class="name">${escapeHtml(s.name)}</span><span class="lv${tone}">${s.level}/${s.max}</span></div>`;
+        }
+        const fv = sigilValueText(s.name, s.level);
+        const g8 = skillEffectText(s.name);
         let fxHtml, tip;
         if (fv) {
-          // 매칭된 스킬: FextraLife 수치를 본문에 강조, game8 설명은 툴팁으로
           fxHtml = `<span class="fxline fx-val">${escapeHtml(fv)}</span>`;
           tip = g8 ? ` title="${escapeHtml(g8)}"` : "";
         } else {
-          // FextraLife 표에 없는 스킬: 기존대로 game8 설명을 본문에 유지
           fxHtml = g8 ? `<span class="fxline">${escapeHtml(g8)}</span>` : "";
           tip = "";
         }
@@ -2058,7 +2175,23 @@
       clearEquippedSlot(type, index);
     }
 
-    function encodeBuild() {
+    function slimSkillSlot(s) {
+      if (!s || !s.skillId) return null;
+      return {
+        skillId: s.skillId,
+        name: s.name,
+        category: s.category,
+        level: s.level,
+        max: s.max,
+      };
+    }
+
+    function slimStatSlot(s) {
+      if (!s || !s.skillId) return null;
+      return { skillId: s.skillId, name: s.name, priority: !!s.priority };
+    }
+
+    function masterBitsString() {
       const bits = [];
       TREES.forEach((tree) => {
         RANKS.forEach((rank) => {
@@ -2067,19 +2200,65 @@
           }
         });
       });
+      return bits.join("");
+    }
+
+    function encodeBuild() {
       const payload = {
         v: 6,
         n: state.buildName,
         note: state.notes,
-        s: bits.join(""),
+        s: masterBitsString(),
         w: state.weapon,
-        ws: state.weaponSkills,
-        bl: state.blessingSkills,
-        sg: state.sigils,
-        sm: state.summonSkills,
-        ss: state.summonStats,
+        ws: state.weaponSkills.map(slimSkillSlot),
+        bl: state.blessingSkills.map(slimSkillSlot),
+        sg: state.sigils.map(slimSkillSlot),
+        sm: state.summonSkills.map(slimSkillSlot),
+        ss: state.summonStats.map(slimStatSlot),
+        mc: state.masterChar,
       };
       return "GBFR6." + btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    }
+
+    function encodeShareBuild() {
+      const payload = {
+        v: 6,
+        n: state.buildName || "",
+        note: (state.notes || "").slice(0, 160),
+        s: masterBitsString(),
+        w: state.weapon,
+        ws: state.weaponSkills.map(slimSkillSlot),
+        bl: state.blessingSkills.map(slimSkillSlot),
+        sg: state.sigils.map(slimSkillSlot),
+        sm: state.summonSkills.map(slimSkillSlot),
+        ss: state.summonStats.map(slimStatSlot),
+        mc: state.masterChar,
+      };
+      const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(payload))))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
+      return "GBFR6." + b64;
+    }
+
+    function decodeB64Payload(rawB64) {
+      let b = rawB64.replace(/-/g, "+").replace(/_/g, "/");
+      while (b.length % 4) b += "=";
+      return JSON.parse(decodeURIComponent(escape(atob(b))));
+    }
+
+    function plannerBaseUrl() {
+      if (!location.origin || location.origin === "null" || location.protocol === "file:") {
+        return "https://blackcatnero.github.io/gbf-relink-planner/";
+      }
+      let path = location.pathname || "/";
+      if (path.endsWith("index.html")) path = path.slice(0, -10);
+      if (!path.endsWith("/")) path += "/";
+      return location.origin + path;
+    }
+
+    function buildShareUrl() {
+      return `${plannerBaseUrl()}?c=${encodeURIComponent(encodeShareBuild())}`;
     }
 
     function decodeBuild(code) {
@@ -2095,7 +2274,7 @@
         return;
       }
       if (!raw.startsWith("GBFR6.")) throw new Error("지원하지 않는 코드 형식입니다.");
-      const payload = JSON.parse(decodeURIComponent(escape(atob(raw.slice(6)))));
+      const payload = decodeB64Payload(raw.slice(6));
       if (payload.v !== 6 || typeof payload.s !== "string") throw new Error("코드가 손상되었습니다.");
       applyMasterBits(payload.s);
       state.buildName = payload.n || payload.buildName || "";
@@ -2147,6 +2326,24 @@
             priority: !!s.priority,
           };
         });
+      }
+      if (payload.mc) state.masterChar = payload.mc;
+    }
+
+    function loadFromUrl() {
+      try {
+        const params = new URLSearchParams(location.search);
+        let c = params.get("c") || params.get("code");
+        if (!c && location.hash.startsWith("#c=")) {
+          c = decodeURIComponent(location.hash.slice(3));
+        }
+        if (!c) return false;
+        decodeBuild(c);
+        history.replaceState(null, "", location.pathname);
+        return true;
+      } catch (err) {
+        setToast(err.message || "URL 빌드 코드를 불러오지 못했습니다.", "err");
+        return false;
       }
     }
 
@@ -2221,6 +2418,21 @@
         try { await document.fonts.ready; } catch (_) { /* ignore */ }
       }
 
+      const shareUrl = buildShareUrl();
+      let qrDataUrl = "";
+      try {
+        if (typeof QRCode !== "undefined" && QRCode.toDataURL) {
+          qrDataUrl = await QRCode.toDataURL(shareUrl, {
+            width: 160,
+            margin: 1,
+            errorCorrectionLevel: "M",
+            color: { dark: "#12161c", light: "#ffffff" },
+          });
+        }
+      } catch (_) {
+        qrDataUrl = "";
+      }
+
       const target = document.getElementById("capture-root");
       const captureBg = getComputedStyle(document.documentElement).getPropertyValue("--capture-bg").trim() || "#222b37";
       const canvas = await html2canvas(target, {
@@ -2236,6 +2448,15 @@
           cloned.querySelectorAll("select.weapon-select").forEach((sel) => {
             const staticEl = _doc.createElement("div");
             staticEl.className = "weapon-select-static";
+            const opt = sel.options[sel.selectedIndex];
+            staticEl.textContent = opt ? opt.textContent : "";
+            sel.replaceWith(staticEl);
+          });
+          cloned.querySelectorAll("select.char-select").forEach((sel) => {
+            const staticEl = _doc.createElement("div");
+            staticEl.className = "weapon-select-static";
+            staticEl.style.fontSize = "0.7rem";
+            staticEl.style.padding = "3px 8px";
             const opt = sel.options[sel.selectedIndex];
             staticEl.textContent = opt ? opt.textContent : "";
             sel.replaceWith(staticEl);
@@ -2271,6 +2492,53 @@
             el.style.width = "0";
             el.style.minWidth = "0";
           });
+
+          const notesField = cloned.querySelector(".notes-field");
+          if (notesField) {
+            notesField.style.minHeight = "0";
+            notesField.style.flex = "0 0 auto";
+            notesField.style.marginTop = "4px";
+          }
+          const notesTa = cloned.querySelector(".notes-field textarea");
+          if (notesTa) {
+            notesTa.style.minHeight = "36px";
+            notesTa.style.height = "40px";
+            notesTa.style.maxHeight = "48px";
+            notesTa.style.resize = "none";
+          }
+
+          if (qrDataUrl) {
+            const master = cloned.querySelector(".master-zone");
+            if (master) {
+              const wrap = _doc.createElement("div");
+              wrap.className = "export-qr";
+              wrap.style.display = "block";
+              wrap.style.marginTop = "6px";
+              wrap.style.alignSelf = "flex-end";
+              wrap.style.marginLeft = "auto";
+              wrap.style.textAlign = "center";
+              const img = _doc.createElement("img");
+              img.src = qrDataUrl;
+              img.alt = "빌드 QR";
+              img.width = 88;
+              img.height = 88;
+              img.style.display = "block";
+              img.style.borderRadius = "6px";
+              img.style.background = "#fff";
+              img.style.padding = "4px";
+              img.style.boxSizing = "border-box";
+              const cap = _doc.createElement("span");
+              cap.textContent = "스캔하여 빌드 열기";
+              cap.style.display = "block";
+              cap.style.fontSize = "0.58rem";
+              cap.style.color = "var(--ink-soft)";
+              cap.style.fontWeight = "600";
+              cap.style.marginTop = "2px";
+              wrap.appendChild(img);
+              wrap.appendChild(cap);
+              master.appendChild(wrap);
+            }
+          }
         },
       });
       const link = document.createElement("a");
@@ -2506,14 +2774,24 @@
 
     document.getElementById("btnTheme").addEventListener("click", toggleTheme);
 
+    document.querySelectorAll(".view-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        applyViewMode(btn.dataset.view);
+        renderAll();
+      });
+    });
+
     document.getElementById("btnDownload").addEventListener("click", () => {
       downloadImage().catch(() => setToast("이미지 생성에 실패했습니다.", "err"));
     });
 
     initDefaults();
     loadPersisted();
+    const fromUrl = loadFromUrl();
     applyTheme(getTheme());
+    applyViewMode(getViewMode());
     renderAll();
+    if (fromUrl) setToast("URL에서 빌드를 불러왔습니다.", "ok");
   </script>
 </body>
 </html>

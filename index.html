@@ -1182,9 +1182,9 @@
 
     .stat-summary-head {
       display: flex;
-      align-items: baseline;
+      align-items: center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
@@ -1193,6 +1193,31 @@
       font-size: 0.82rem;
       font-weight: 700;
       color: var(--ink);
+    }
+
+    .stat-cap-opts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .stat-cap-opts label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .stat-cap-opts input {
+      margin: 0;
+      accent-color: var(--active);
     }
 
     .stat-summary-grid {
@@ -1333,6 +1358,11 @@
       <section class="stat-summary" id="statSummary" aria-label="스탯 합산">
         <div class="stat-summary-head">
           <h2>스탯 합산 · 대미지 상한</h2>
+          <div class="stat-cap-opts" id="statCapOpts">
+            <label><input type="checkbox" id="capOptMl50" data-cap-opt="ml50" />ML 50</label>
+            <label><input type="checkbox" id="capOptWeaponAwaken" data-cap-opt="weaponAwaken" />무기 강화 초월 보너스 100%</label>
+            <label><input type="checkbox" id="capOptMl55" data-cap-opt="ml55" />ML 55 캐릭터 강화 150%</label>
+          </div>
         </div>
         <div class="stat-summary-grid" id="statCapGrid"></div>
       </section>
@@ -1603,6 +1633,7 @@
       summonSkills: Array.from({ length: 4 }, emptySlot),
       summonStats: Array.from({ length: 4 }, () => emptyStatSlot()),
       masterChar: "gran",
+      capOpts: { ml50: false, weaponAwaken: false, ml55: false },
     };
 
     const picker = {
@@ -2016,7 +2047,27 @@
         });
       }
 
+      // 강화/수집/초월/ML 보너스 (대미지 상한만)
+      const applyProgressCaps = (entry) => {
+        if (!entry || !entry.caps) return;
+        Object.entries(entry.caps).forEach(([cat, value]) => {
+          if (value) add(cat, value);
+        });
+      };
+      applyProgressCaps(PROGRESS_BONUSES.base); // 캐릭터 강화 100% + 무기 수집 100% — 항상
+      if (state.capOpts.ml50) applyProgressCaps(PROGRESS_BONUSES.ml50);
+      if (state.capOpts.weaponAwaken) applyProgressCaps(PROGRESS_BONUSES.weaponAwaken);
+      if (state.capOpts.ml55) applyProgressCaps(PROGRESS_BONUSES.ml55);
+
       return totals;
+    }
+
+    function syncCapOptCheckboxes() {
+      document.querySelectorAll("[data-cap-opt]").forEach((el) => {
+        const key = el.dataset.capOpt;
+        if (!key || !state.capOpts.hasOwnProperty(key)) return;
+        el.checked = !!state.capOpts[key];
+      });
     }
 
     function appliedCapFor(rowKey, caps) {
@@ -2032,6 +2083,7 @@
     function renderStatSummary() {
       const root = document.getElementById("statCapGrid");
       if (!root) return;
+      syncCapOptCheckboxes();
       const caps = computeDamageCaps();
       root.innerHTML = STAT_CAP_ROWS.map((row) => {
         const applied = appliedCapFor(row.key, caps);
@@ -2309,6 +2361,7 @@
           sm: state.summonSkills,
           ss: state.summonStats,
           mc: state.masterChar,
+          co: state.capOpts,
         }));
       } catch (_) { /* ignore */ }
     }
@@ -2332,6 +2385,13 @@
         state.notes = payload.note || payload.notes || "";
         if (typeof payload.mc === "string" && MASTER_SKILLS.chars.some((c) => c.id === payload.mc)) {
           state.masterChar = payload.mc;
+        }
+        if (payload.co && typeof payload.co === "object") {
+          state.capOpts = {
+            ml50: !!payload.co.ml50,
+            weaponAwaken: !!payload.co.weaponAwaken,
+            ml55: !!payload.co.ml55,
+          };
         }
         if (typeof payload.w === "number") {
           state.weapon = payload.w;
@@ -3560,6 +3620,16 @@
 
     document.querySelectorAll("#calcPanel input, #calcPanel select").forEach((el) => {
       el.addEventListener("input", renderCalc);
+    });
+
+    document.querySelectorAll("[data-cap-opt]").forEach((el) => {
+      el.addEventListener("change", () => {
+        const key = el.dataset.capOpt;
+        if (!key || !state.capOpts.hasOwnProperty(key)) return;
+        state.capOpts[key] = !!el.checked;
+        renderStatSummary();
+        persistState();
+      });
     });
 
     const masterCharSelect = document.getElementById("masterChar");

@@ -704,6 +704,61 @@ const DMG_CALC = {
   PURSUIT: { skill: "추가 대미지", dmg: 20, rate: 100 },
 };
 
+/**
+ * 캐릭터/무기 강화·수집·초월·마스터 레벨 보너스.
+ * atk/hp/stun/critRate/critDmg = 평타 외 스탯.
+ * caps: { all, basic, ability, ougi, chain } 대미지 상한 %.
+ * dmg: { ability, ougi, chain } 대미지 %(상한 아님).
+ */
+const PROGRESS_BONUSES = {
+  // 항상 적용 전제: 캐릭터 강화 100% + 무기 수집 보너스 100%
+  base: {
+    id: "base",
+    label: "캐릭터 강화 100% + 무기 수집 보너스 100%",
+    atk: 5248,
+    hp: 32410,
+    stun: 50,
+    critRate: 45,
+    critDmg: 80,
+    caps: { all: 0, basic: 108, ability: 108, ougi: 108, chain: 0 },
+    dmg: { ability: 20, ougi: 20, chain: 20 },
+  },
+  // 체크 옵션
+  weaponAwaken: {
+    id: "weaponAwaken",
+    label: "무기 강화 초월 보너스 100%",
+    atk: 3520,
+    hp: 13200,
+    stun: 29,
+    critRate: 33,
+    critDmg: 55,
+    caps: { all: 0, basic: 385, ability: 385, ougi: 385, chain: 33 },
+    dmg: {},
+  },
+  ml50: {
+    id: "ml50",
+    label: "ML 50",
+    atk: 3000,
+    hp: 6000,
+    stun: 0,
+    critRate: 0,
+    critDmg: 0,
+    caps: { all: 100, basic: 0, ability: 0, ougi: 0, chain: 0 },
+    dmg: {},
+  },
+  ml55: {
+    id: "ml55",
+    label: "ML 55 캐릭터 강화 150%",
+    atk: 0,
+    hp: 0,
+    stun: 30,
+    critRate: 0,
+    critDmg: 0,
+    caps: { all: 0, basic: 150, ability: 150, ougi: 150, chain: 0 },
+    dmg: {},
+  },
+};
+
 /** 소환석 스탯 선택 목록 (<> = priority) */
 const SUMMON_STATS = [
   { id: "summonstat:기본 공격 대미지 상한", name: "기본 공격 대미지 상한", priority: true },

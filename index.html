@@ -3404,16 +3404,34 @@
             notesField.style.minHeight = "0";
             notesField.style.flex = "0 0 auto";
             notesField.style.marginTop = "4px";
+            notesField.style.height = "auto";
+            notesField.style.alignSelf = "stretch";
           }
           const notesTa = cloned.querySelector(".notes-field textarea");
           if (notesTa) {
-            notesTa.style.minHeight = "36px";
-            notesTa.style.height = "44px";
-            notesTa.style.maxHeight = "52px";
-            notesTa.style.resize = "none";
-            notesTa.style.lineHeight = "1.45";
-            notesTa.style.paddingBottom = "6px";
-            notesTa.style.overflow = "hidden";
+            const text = notesTa.value || "";
+            const staticEl = _doc.createElement("div");
+            staticEl.className = "notes-static";
+            staticEl.textContent = text;
+            staticEl.style.width = "100%";
+            staticEl.style.boxSizing = "border-box";
+            staticEl.style.minHeight = "36px";
+            staticEl.style.height = "auto";
+            staticEl.style.maxHeight = "none";
+            staticEl.style.font = "inherit";
+            staticEl.style.fontSize = "0.8rem";
+            staticEl.style.fontWeight = "500";
+            staticEl.style.color = "var(--ink)";
+            staticEl.style.background = "var(--surface)";
+            staticEl.style.border = "1px solid var(--line)";
+            staticEl.style.borderRadius = "8px";
+            staticEl.style.padding = "8px 10px";
+            staticEl.style.lineHeight = "1.45";
+            staticEl.style.whiteSpace = "pre-wrap";
+            staticEl.style.overflowWrap = "anywhere";
+            staticEl.style.wordBreak = "break-word";
+            staticEl.style.overflow = "visible";
+            notesTa.replaceWith(staticEl);
           }
 
           if (qrDataUrl) {

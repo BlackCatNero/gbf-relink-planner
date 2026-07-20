@@ -1990,9 +1990,10 @@
       const meta = CAP_SKILL_META[name];
       if (meta) {
         if (meta.flat != null) return { cat: meta.cat, value: meta.flat };
-        // 「대미지 상한」스킬: 스킬 목록(FextraLife)과 동일 수치
+        // 「대미지 상한」스킬: 스킬 목록(나무위키 합산 레벨 표)과 동일 수치
         if (name === "대미지 상한") {
-          const entry = SIGIL_VALUES[name];
+          const pack = SIGIL_VALUES[name];
+          const entry = pack && (pack.effects ? pack.effects[0] : pack);
           if (entry && entry.pts) {
             const v = sigilValueAt(entry, lv);
             if (v != null) return { cat: meta.cat, value: Math.round(v) };
@@ -2163,7 +2164,7 @@
             }
             const max = catalogMaxFor(s);
             const tone = levelToneClass(s.level, max);
-            const fv = sigilValueText(s.name, s.level); // FextraLife: 이 진 레벨의 수치
+            const fv = sigilValueText(s.name, s.level); // 합산 레벨 수치(나무위키)
             const g8 = skillEffectText(s.name);          // game8: 최대 효과 설명
             const tipText = fv ? (g8 ? `${fv}\n${g8}` : fv) : g8;
             const fxAttr = tipText ? ` title="${escapeHtml(tipText)}"` : "";
@@ -2231,10 +2232,14 @@
           return `<div class="line-row cat-${s.category}"><span class="name">${escapeHtml(s.name)}</span><span class="lv${tone}">${s.level}/${s.max}</span></div>`;
         }
         const fv = sigilValueText(s.name, s.level);
+        const cur = typeof skillEffectAtLevel === "function" ? skillEffectAtLevel(s.name, s.level) : "";
         const g8 = skillEffectText(s.name);
         let fxHtml, tip;
         if (fv) {
           fxHtml = `<span class="fxline fx-val">${escapeHtml(fv)}</span>`;
+          tip = g8 ? ` title="${escapeHtml(g8)}"` : "";
+        } else if (cur) {
+          fxHtml = `<span class="fxline fx-val">${escapeHtml(cur)}</span>`;
           tip = g8 ? ` title="${escapeHtml(g8)}"` : "";
         } else {
           fxHtml = g8 ? `<span class="fxline">${escapeHtml(g8)}</span>` : "";

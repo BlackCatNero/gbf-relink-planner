@@ -642,6 +642,73 @@ function skillEffectText(name) {
   return "";
 }
 
+function _skillCatalogMax(name) {
+  const n = (typeof NAME_ALIASES !== "undefined" && NAME_ALIASES[name]) || name;
+  const found = SKILL_CATALOG.find((s) => s.name === n);
+  return found && found.max > 0 ? found.max : 15;
+}
+
+/** Round scaled effect numbers: % → 1 decimal (trim .0), else integer. */
+function _scaleFxNum(v, isPercent) {
+  if (isPercent) {
+    const r = Math.round(v * 10) / 10;
+    return Number.isInteger(r) ? String(r) : r.toFixed(1);
+  }
+  return String(Math.round(v));
+}
+
+/**
+ * Scale effect magnitudes in a MAX phrase by ratio r (√(lv/max)).
+ * Only touches signed amounts (+50 / -20) and values with % / 초 units
+ * (incl. ranges like 20~50%). Leaves bare thresholds (HP 200000, 최대 3회) alone.
+ */
+function _scaleEffectPhrase(text, r) {
+  if (r >= 1) return text;
+  return String(text).replace(
+    /([+\-])(\d+(?:\.\d+)?)(%|초)?|(\d+(?:\.\d+)?)(?:~(\d+(?:\.\d+)?))?(%|초)/g,
+    (_m, sign, sNum, sUnit, a, b, unit) => {
+      if (sign != null) {
+        const isPct = sUnit === "%";
+        return sign + _scaleFxNum(Number(sNum) * r, isPct) + (sUnit || "");
+      }
+      const isPct = unit === "%";
+      const left = _scaleFxNum(Number(a) * r, isPct);
+      if (b != null) return left + "~" + _scaleFxNum(Number(b) * r, isPct) + unit;
+      return left + unit;
+    }
+  );
+}
+
+/**
+ * Current-level effect text from game8 MAX phrases (√ curve).
+ * Prefer sigilValueText when a namu.wiki sum-level table exists.
+ * @returns {string} e.g. "대미지 상한 +35%" · empty if no effect data / level≤0
+ */
+function skillEffectAtLevel(name, level) {
+  const lv = Number(level) || 0;
+  if (lv <= 0) return "";
+
+  const maxLv = _skillCatalogMax(name);
+  const r = Math.sqrt(Math.min(lv, maxLv) / maxLv);
+
+  const fx = SKILL_EFFECTS[name];
+  if (fx && fx.length) {
+    return fx.map((line) => _scaleEffectPhrase(line, r)).join(" · ");
+  }
+
+  const parts = EXCLUSIVE_PLUS_COMPONENTS[name];
+  if (parts) {
+    return parts
+      .map((p) => {
+        const pfx = SKILL_EFFECTS[p];
+        if (!pfx) return p;
+        return `${p} — ${pfx.map((line) => _scaleEffectPhrase(line, r)).join(" · ")}`;
+      })
+      .join(" / ");
+  }
+  return "";
+}
+
 /**
  * Numeric tables for the damage calculator, following the formula on
  * wikiwiki.jp/maglielle/ジーン・加護 ("ダメージ計算" section).

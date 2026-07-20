@@ -487,6 +487,20 @@
       color: var(--ink-dim);
     }
 
+    .line-row .lv.lv-edit,
+    .sigil-slot .slv.lv-edit {
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      text-decoration-color: color-mix(in srgb, var(--ink-dim) 45%, transparent);
+    }
+
+    .line-row .lv.lv-edit:hover,
+    .sigil-slot .slv.lv-edit:hover {
+      color: var(--active);
+      text-decoration-color: var(--active);
+    }
+
     .sigil-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1365,6 +1379,9 @@
           </div>
         </div>
         <div class="stat-summary-grid" id="statCapGrid"></div>
+        <div class="stat-cap-opts" id="statCapOptsExtra" style="justify-content:flex-start;margin-top:8px">
+          <label><input type="checkbox" id="capOptNoEnhance" data-cap-opt="noEnhance" />캐릭터 강화 미적용</label>
+        </div>
       </section>
     </div>
 
@@ -1557,6 +1574,7 @@
 
     function makeWeaponSlots(weaponIndex) {
       const w = WEAPONS[weaponIndex];
+      if (!w || !Array.isArray(w.slots) || !w.slots.length) return [];
       return w.slots.map((slot) => {
         if (slot.type === "fixed") {
           const sk = resolveSkill(slot.name);
@@ -1633,7 +1651,7 @@
       summonSkills: Array.from({ length: 4 }, emptySlot),
       summonStats: Array.from({ length: 4 }, () => emptyStatSlot()),
       masterChar: "gran",
-      capOpts: { ml50: false, weaponAwaken: false, ml55: false },
+      capOpts: { ml50: false, weaponAwaken: false, ml55: false, noEnhance: false },
     };
 
     const picker = {
@@ -1839,6 +1857,102 @@
       if (!slot || !slot.skillId) return 0;
       const cat = SKILL_CATALOG.find((s) => s.id === slot.skillId);
       return cat ? cat.max : (Number(slot.max) || Number(slot.level) || 0);
+    }
+
+    function sigilPairIndex(index) {
+      return index % 2 === 0 ? index + 1 : index - 1;
+    }
+
+    function isSigilLevelLockedSkill(slot) {
+      if (!slot || !slot.skillId) return false;
+      if (isSigilFixedMaxSkill(slot.name)) return true;
+      if (isSigilFixed15Skill(slot.name)) return true;
+      if (isExclusiveSkill(slot)) return true;
+      return false;
+    }
+
+    function sigilRowLevelLocked(index) {
+      const left = sigilLeftIndex(index);
+      const a = state.sigils[left];
+      const b = state.sigils[left + 1];
+      if (a && a.skillId && isSigilLevelLockedSkill(a)) return true;
+      if (b && b.skillId && isSigilLevelLockedSkill(b)) return true;
+      return false;
+    }
+
+    /** 진 행(같은 물리 진)의 공유 레벨. 없으면 15. */
+    function sigilRowSharedLevel(index) {
+      const left = sigilLeftIndex(index);
+      const a = state.sigils[left];
+      const b = state.sigils[left + 1];
+      const levels = [];
+      if (a && a.skillId && !isSigilFixedMaxSkill(a.name)) {
+        levels.push(Math.min(EQUIP_LEVEL, Math.max(1, Number(a.level) || EQUIP_LEVEL)));
+      }
+      if (b && b.skillId && !isSigilFixedMaxSkill(b.name)) {
+        levels.push(Math.min(EQUIP_LEVEL, Math.max(1, Number(b.level) || EQUIP_LEVEL)));
+      }
+      if (!levels.length) return EQUIP_LEVEL;
+      return Math.max(...levels);
+    }
+
+    function canEditEquippedLevel(type, slot, index = null) {
+      if (!slot || !slot.skillId) return false;
+      if (type !== "blessing" && type !== "sigil" && type !== "summon") return false;
+      if (type === "sigil") {
+        if (isSigilLevelLockedSkill(slot)) return false;
+        if (index != null && sigilRowLevelLocked(index)) return false;
+      }
+      return true;
+    }
+
+    function maxEditableLevel(type, slot) {
+      if (type === "blessing") return Number(slot.selectLevel) || catalogMaxFor(slot) || 1;
+      // 진·소환석 슬롯 레벨 상한은 15
+      if (type === "sigil" || type === "summon") return EQUIP_LEVEL;
+      return catalogMaxFor(slot) || 1;
+    }
+
+    function defaultEquipLevelFor(type, skill, index = null) {
+      if (!skill) return EQUIP_LEVEL;
+      if (type === "sigil") {
+        if (isSigilFixedMaxSkill(skill.name)) return skill.max;
+        if (skill.category === "exclusive" || isSigilFixed15Skill(skill.name)) return EQUIP_LEVEL;
+        // 같은 행에 이미 스킬이 있으면 그 레벨을 따름
+        if (index != null) return sigilRowSharedLevel(index);
+        return EQUIP_LEVEL;
+      }
+      if (type === "summon") return EQUIP_LEVEL;
+      if (picker.grantLevel != null) return picker.grantLevel;
+      return skill.max || EQUIP_LEVEL;
+    }
+
+    function editEquippedLevel(type, index) {
+      const slot = getSlot(type, index);
+      if (!canEditEquippedLevel(type, slot, index)) return;
+      const max = maxEditableLevel(type, slot);
+      const cur = Math.min(Math.max(1, Number(slot.level) || max), max);
+      const raw = window.prompt(`${slot.name} 레벨 (1~${max})`, String(cur));
+      if (raw == null) return;
+      const next = Math.round(Number(String(raw).trim()));
+      if (!Number.isFinite(next) || next < 1 || next > max) {
+        setToast(`1~${max} 사이의 숫자를 입력하세요`, "warn");
+        return;
+      }
+      setSlot(type, index, { ...slot, level: next });
+      if (type === "sigil") {
+        // 같은 행의 다른 슬롯도 동일 레벨로 맞춤
+        const pair = sigilPairIndex(index);
+        const other = getSlot(type, pair);
+        if (other && other.skillId && !isSigilWideSkill(slot.name) && !isSigilWideSkill(other.name)) {
+          if (!isSigilFixedMaxSkill(other.name)) {
+            setSlot(type, pair, { ...other, level: next });
+          }
+        }
+      }
+      renderAll();
+      persistState();
+      setToast(type === "sigil" ? `진 행 레벨 Lv.${next}` : `${slot.name} Lv.${next}`, "ok");
     }
 
     /** 최대치 대비: +0~+4 파랑, +5 이상 빨강 */
@@ -2058,7 +2172,10 @@
           if (value) add(cat, value);
         });
       };
-      applyProgressCaps(PROGRESS_BONUSES.base); // 캐릭터 강화 100% + 무기 수집 100% — 항상
+      // 캐릭터 강화 미적용 시: 기본 캐릭터 강화·무기 수집 상한만 제외 (장비·마스터는 유지)
+      if (!state.capOpts.noEnhance) {
+        applyProgressCaps(PROGRESS_BONUSES.base); // 캐릭터 강화 100% + 무기 수집 100%
+      }
       if (state.capOpts.ml50) applyProgressCaps(PROGRESS_BONUSES.ml50);
       if (state.capOpts.weaponAwaken) applyProgressCaps(PROGRESS_BONUSES.weaponAwaken);
       if (state.capOpts.ml55) applyProgressCaps(PROGRESS_BONUSES.ml55);
@@ -2071,7 +2188,23 @@
         const key = el.dataset.capOpt;
         if (!key || !state.capOpts.hasOwnProperty(key)) return;
         el.checked = !!state.capOpts[key];
+        el.disabled = false;
       });
+    }
+
+    function applyCapOptChange(key, checked) {
+      if (!key || !state.capOpts.hasOwnProperty(key)) return;
+      if (key === "noEnhance") {
+        state.capOpts.noEnhance = !!checked;
+        if (checked) {
+          state.capOpts.ml50 = false;
+          state.capOpts.weaponAwaken = false;
+          state.capOpts.ml55 = false;
+        }
+      } else {
+        state.capOpts[key] = !!checked;
+        if (checked) state.capOpts.noEnhance = false;
+      }
     }
 
     function appliedCapFor(rowKey, caps) {
@@ -2117,7 +2250,9 @@
       let lvHtml = "";
       if (!hideLv) {
         const lvLabel = opts.levelText != null ? opts.levelText : String(slot.level);
-        lvHtml = `<span class="lv${tone}">${escapeHtml(lvLabel)}</span>`;
+        const editCls = opts.levelEditable ? " lv-edit" : "";
+        const editAttr = opts.levelEditable && opts.levelEditAttr ? opts.levelEditAttr : "";
+        lvHtml = `<span class="lv${tone}${editCls}"${editAttr}>${escapeHtml(lvLabel)}</span>`;
       }
       const fx = skillEffectText(slot.name);
       const fxAttr = fx ? ` title="${escapeHtml(fx)}"` : "";
@@ -2136,17 +2271,25 @@
           <div class="weapon-col">
             <div class="weapon-col-title">스킬</div>
             <div class="line-list">
-              ${state.weaponSkills.map((s, i) => {
-                if (s.locked) return lineRowHtml(s);
-                return lineRowHtml(s, { pickable: true, selectLevel: s.selectLevel, attr: ` data-pick="weapon:${i}"` });
-              }).join("")}
+              ${state.weaponSkills.length
+                ? state.weaponSkills.map((s, i) => {
+                    if (s.locked) return lineRowHtml(s);
+                    return lineRowHtml(s, { pickable: true, selectLevel: s.selectLevel, attr: ` data-pick="weapon:${i}"` });
+                  }).join("")
+                : `<div class="empty-hint" style="padding:8px 4px;font-size:0.72rem">무기 스킬 없음</div>`}
             </div>
           </div>
           <div class="weapon-col">
             <div class="weapon-col-title">가호 스킬</div>
             <div class="line-list">
               ${state.blessingSkills.map((s, i) =>
-                lineRowHtml(s, { pickable: true, selectLevel: s.selectLevel, attr: ` data-pick="blessing:${i}"` })
+                lineRowHtml(s, {
+                  pickable: true,
+                  selectLevel: s.selectLevel,
+                  attr: ` data-pick="blessing:${i}"`,
+                  levelEditable: canEditEquippedLevel("blessing", s, i),
+                  levelEditAttr: ` data-lv-edit="blessing:${i}"`,
+                })
               ).join("")}
             </div>
           </div>
@@ -2162,13 +2305,16 @@
             if (!s.skillId) {
               return `<button type="button" class="sigil-slot empty${wideCls}" data-pick="sigil:${i}"><span class="sname">스킬 선택</span><span class="slv">-</span></button>`;
             }
-            const max = catalogMaxFor(s);
-            const tone = levelToneClass(s.level, max);
+            const slotMax = isSigilFixedMaxSkill(s.name) ? catalogMaxFor(s) : EQUIP_LEVEL;
+            const tone = levelToneClass(s.level, slotMax);
             const fv = sigilValueText(s.name, s.level); // 합산 레벨 수치(나무위키)
             const g8 = skillEffectText(s.name);          // game8: 최대 효과 설명
             const tipText = fv ? (g8 ? `${fv}\n${g8}` : fv) : g8;
             const fxAttr = tipText ? ` title="${escapeHtml(tipText)}"` : "";
-            return `<button type="button" class="sigil-slot cat-${s.category}${wideCls}" data-pick="sigil:${i}"${fxAttr}><span class="sname">${escapeHtml(s.name)}</span><span class="slv${tone}">${s.level}</span></button>`;
+            const editable = canEditEquippedLevel("sigil", s, i);
+            const editCls = editable ? " lv-edit" : "";
+            const editAttr = editable ? ` data-lv-edit="sigil:${i}"` : "";
+            return `<button type="button" class="sigil-slot cat-${s.category}${wideCls}" data-pick="sigil:${i}"${fxAttr}><span class="sname">${escapeHtml(s.name)}</span><span class="slv${tone}${editCls}"${editAttr}>${s.level}</span></button>`;
           }).join("")}
         </div>`;
 
@@ -2178,7 +2324,12 @@
           <div class="weapon-col">
             <div class="weapon-col-title">소환석 스킬</div>
             <div class="line-list">
-              ${state.summonSkills.map((s, i) => lineRowHtml(s, { pickable: true, attr: ` data-pick="summon:${i}"` })).join("")}
+              ${state.summonSkills.map((s, i) => lineRowHtml(s, {
+                pickable: true,
+                attr: ` data-pick="summon:${i}"`,
+                levelEditable: canEditEquippedLevel("summon", s, i),
+                levelEditAttr: ` data-lv-edit="summon:${i}"`,
+              })).join("")}
             </div>
           </div>
           <div class="weapon-col">
@@ -2214,6 +2365,15 @@
           e.preventDefault();
           const [type, idx] = btn.dataset.pick.split(":");
           clearEquippedSlot(type, Number(idx));
+        });
+      });
+
+      document.querySelectorAll("[data-lv-edit]").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const [type, idx] = el.dataset.lvEdit.split(":");
+          editEquippedLevel(type, Number(idx));
         });
       });
     }
@@ -2307,6 +2467,47 @@
       });
     }
 
+    /** 진·소환석 슬롯 레벨을 1~15로 클램프. 진은 같은 행 레벨을 일치시킴. */
+    function normalizeEquipSlotLevels() {
+      state.summonSkills.forEach((s, i) => {
+        if (!s || !s.skillId) return;
+        const lv = Math.min(EQUIP_LEVEL, Math.max(1, Number(s.level) || EQUIP_LEVEL));
+        if (s.level !== lv) state.summonSkills[i] = { ...s, level: lv };
+      });
+
+      for (let row = 0; row < 12; row++) {
+        const L = row * 2;
+        const R = L + 1;
+        const left = state.sigils[L];
+        const right = state.sigils[R];
+        if (!left || !right) continue;
+        if (left.skillId && isSigilWideSkill(left.name)) continue;
+
+        const clampNormal = (s) => {
+          if (!s.skillId) return null;
+          if (isSigilFixedMaxSkill(s.name)) return null;
+          if (isExclusiveSkill(s) || isSigilFixed15Skill(s.name)) return EQUIP_LEVEL;
+          return Math.min(EQUIP_LEVEL, Math.max(1, Number(s.level) || EQUIP_LEVEL));
+        };
+
+        const lvL = clampNormal(left);
+        const lvR = clampNormal(right);
+        if (lvL == null && lvR == null) continue;
+
+        let shared = EQUIP_LEVEL;
+        if (lvL != null && lvR != null) shared = Math.max(lvL, lvR);
+        else if (lvL != null) shared = lvL;
+        else shared = lvR;
+
+        if (lvL != null && left.level !== shared) {
+          state.sigils[L] = { ...left, level: shared };
+        }
+        if (lvR != null && right.level !== shared) {
+          state.sigils[R] = { ...right, level: shared };
+        }
+      }
+    }
+
     function normalizeSigilWideSlots() {
       for (let row = 0; row < 12; row++) {
         const L = row * 2;
@@ -2334,9 +2535,12 @@
       if (notesEl && document.activeElement !== notesEl) notesEl.value = state.notes || "";
       normalizeSigilFixedMaxLevels();
       normalizeSigilWideSlots();
+      normalizeEquipSlotLevels();
       const charSel = document.getElementById("masterChar");
-      if (charSel && charSel.options.length && charSel.value !== state.masterChar) {
-        charSel.value = state.masterChar;
+      if (charSel && charSel.options.length) {
+        if ([...charSel.options].some((o) => o.value === state.masterChar)) {
+          charSel.value = state.masterChar;
+        }
       }
       renderGear();
       renderSkills();
@@ -2399,9 +2603,16 @@
             ml50: !!payload.co.ml50,
             weaponAwaken: !!payload.co.weaponAwaken,
             ml55: !!payload.co.ml55,
+            noEnhance: !!payload.co.noEnhance,
           };
+          // 상호 배타: noEnhance와 강화 옵션은 동시에 유지하지 않음
+          if (state.capOpts.noEnhance) {
+            state.capOpts.ml50 = false;
+            state.capOpts.weaponAwaken = false;
+            state.capOpts.ml55 = false;
+          }
         }
-        if (typeof payload.w === "number") {
+        if (typeof payload.w === "number" && payload.w >= 0 && payload.w < WEAPONS.length) {
           state.weapon = payload.w;
           state.weaponSkills = makeWeaponSlots(state.weapon);
         }
@@ -2518,7 +2729,8 @@
       } else {
         picker.mode = "full";
         picker.poolNames = null;
-        picker.grantLevel = EQUIP_LEVEL;
+        // 진·소환석: 장착 초기값 = 카탈로그 최대 (픽커에서 스킬별 max 표시)
+        picker.grantLevel = null;
         picker.category = slot.category || "basic";
         document.getElementById("modalTitle").textContent =
           type === "sigil" ? `진 스킬 ${Math.floor(index / 2) + 1}-${(index % 2) + 1}` : `소환 스킬 ${index + 1}`;
@@ -2613,6 +2825,7 @@
 
         const grant = picker.grantLevel != null ? picker.grantLevel : EQUIP_LEVEL;
         const fromSigil = picker.target && picker.target.type === "sigil";
+        const fromSummon = picker.target && picker.target.type === "summon";
         const skills = sortCatalog(SKILL_CATALOG.filter((s) => {
           if (s.category !== picker.category || s.weaponOnly) return false;
           if (picker.category === "exclusive") {
@@ -2621,7 +2834,10 @@
           return true;
         }));
         body.innerHTML = skills.map((s, i) => {
-          const showLv = fromSigil && isSigilFixedMaxSkill(s.name) ? s.max : grant;
+          let showLv = grant;
+          if (fromSigil || fromSummon) {
+            showLv = defaultEquipLevelFor(picker.target.type, s, picker.target.index);
+          }
           const prev = skills[i - 1];
           const sep = prev && prev.priority && !s.priority
             ? `<div class="pick-sep"></div>` : "";
@@ -2644,14 +2860,20 @@
         btn.addEventListener("click", () => {
           if (btn.disabled || !picker.target) return;
           const skill = SKILL_CATALOG.find((s) => s.id === btn.dataset.skill) || resolveSkill(btn.dataset.skill);
-          let level = picker.grantLevel != null ? picker.grantLevel : EQUIP_LEVEL;
-          if (picker.target.type === "sigil" && isSigilFixedMaxSkill(skill.name)) {
-            level = skill.max;
-          }
+          let level = defaultEquipLevelFor(picker.target.type, skill, picker.target.index);
           const catalogMax = skill.max || level;
           let equipIndex = picker.target.index;
-          if (picker.target.type === "sigil" && isSigilWideSkill(skill.name)) {
-            equipIndex = sigilLeftIndex(equipIndex);
+          if (picker.target.type === "sigil") {
+            if (isSigilWideSkill(skill.name)) {
+              equipIndex = sigilLeftIndex(equipIndex);
+            }
+            if (isSigilFixedMaxSkill(skill.name)) {
+              level = skill.max;
+            } else if (skill.category === "exclusive" || isSigilFixed15Skill(skill.name)) {
+              level = EQUIP_LEVEL;
+            } else {
+              level = sigilRowSharedLevel(equipIndex);
+            }
           }
           const prev = getSlot(picker.target.type, equipIndex);
           const next = {
@@ -2668,6 +2890,12 @@
           setSlot(picker.target.type, equipIndex, next);
           if (picker.target.type === "sigil" && isSigilWideSkill(skill.name)) {
             setSlot("sigil", equipIndex + 1, emptySlot());
+          } else if (picker.target.type === "sigil") {
+            const pair = sigilPairIndex(equipIndex);
+            const other = getSlot("sigil", pair);
+            if (other && other.skillId && !isSigilFixedMaxSkill(other.name)) {
+              setSlot("sigil", pair, { ...other, level });
+            }
           }
           closePicker();
           renderAll();
@@ -2831,7 +3059,8 @@
       if (note) lines.push(`o=${encodeURIComponent(note)}`);
       lines.push(`b=${packBitString(masterBitsString())}`);
       lines.push(`w=${Number(state.weapon) || 0}`);
-      if (charIdx > 0) lines.push(`c=${charIdx}`);
+      // 캐릭터 인덱스 항상 저장 (0=그랑 포함). 구형 코드는 c 생략 = 그랑.
+      lines.push(`c=${charIdx >= 0 ? charIdx : 0}`);
       const W = packSparseSkills(state.weaponSkills, { skipLocked: true, includeLevel: true });
       const B = packSparseSkills(state.blessingSkills, { includeLevel: true });
       const G = packSparseSkills(state.sigils, { includeLevel: true });
@@ -2862,7 +3091,8 @@
 
       state.buildName = decodeURIComponent(map.n || "");
       state.notes = decodeURIComponent(map.o || "");
-      state.weapon = Number(map.w) || 0;
+      const wi = Number(map.w);
+      state.weapon = Number.isFinite(wi) && wi >= 0 && wi < WEAPONS.length ? wi : 0;
       state.weaponSkills = makeWeaponSlots(state.weapon);
       state.blessingSkills = makeBlessingSlots();
       state.sigils = Array.from({ length: 24 }, emptySlot);
@@ -2870,8 +3100,14 @@
       state.summonStats = Array.from({ length: 4 }, () => emptyStatSlot());
 
       const charList = MASTER_SKILLS.chars || [];
-      const ci = Number(map.c);
-      if (Number.isFinite(ci) && charList[ci]) state.masterChar = charList[ci].id;
+      const defaultCharId = (charList[0] && charList[0].id) || "gran";
+      if (Object.prototype.hasOwnProperty.call(map, "c")) {
+        const ci = Number(map.c);
+        state.masterChar = (Number.isFinite(ci) && charList[ci]) ? charList[ci].id : defaultCharId;
+      } else {
+        // 구형: c 생략 = 그랑(인덱스 0)
+        state.masterChar = defaultCharId;
+      }
 
       function fillSkills(key, slots, withLevel) {
         const raw = map[key] || "";
@@ -2924,6 +3160,7 @@
 
       normalizeSigilFixedMaxLevels();
       normalizeSigilWideSlots();
+      normalizeEquipSlotLevels();
     }
 
     function encodeBuild() {
@@ -2983,7 +3220,7 @@
     function applyGearPayload(payload) {
       state.buildName = payload.n || payload.buildName || "";
       state.notes = payload.note || payload.notes || "";
-      if (typeof payload.w === "number") {
+      if (typeof payload.w === "number" && payload.w >= 0 && payload.w < WEAPONS.length) {
         state.weapon = payload.w;
         state.weaponSkills = makeWeaponSlots(state.weapon);
       }
@@ -3033,7 +3270,12 @@
           };
         });
       }
-      if (payload.mc) state.masterChar = payload.mc;
+      if (typeof payload.mc === "string" && MASTER_SKILLS.chars.some((c) => c.id === payload.mc)) {
+        state.masterChar = payload.mc;
+      } else {
+        // mc 없는 구형 코드 → 기본 캐릭터(그랑)
+        state.masterChar = (MASTER_SKILLS.chars[0] && MASTER_SKILLS.chars[0].id) || "gran";
+      }
     }
 
     function decodeBuild(code) {
@@ -3651,8 +3893,7 @@
     document.querySelectorAll("[data-cap-opt]").forEach((el) => {
       el.addEventListener("change", () => {
         const key = el.dataset.capOpt;
-        if (!key || !state.capOpts.hasOwnProperty(key)) return;
-        state.capOpts[key] = !!el.checked;
+        applyCapOptChange(key, !!el.checked);
         renderStatSummary();
         persistState();
       });

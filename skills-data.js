@@ -423,6 +423,11 @@ const WEAPONS = [
       { type: "fixed", name: "엑스트라 아츠", level: 15 },
     ],
   },
+  {
+    id: "none",
+    name: "무기 미선택",
+    slots: [],
+  },
 ];
 
 /**

@@ -1487,7 +1487,6 @@
         <span class="spacer" aria-hidden="true"></span>
         <div class="dl-group">
           <label class="dl-qr-opt"><input type="checkbox" id="optExportStats" checked />스탯 합산 포함</label>
-          <label class="dl-qr-opt"><input type="checkbox" id="optExportQr" checked />QR 코드 생성</label>
           <button type="button" class="btn primary" id="btnDownload">이미지 다운로드</button>
         </div>
       </div>
@@ -3495,11 +3494,12 @@
         try { await document.fonts.ready; } catch (_) { /* ignore */ }
       }
 
-      const shareUrl = buildShareUrl();
-      const includeQr = !!(document.getElementById("optExportQr") && document.getElementById("optExportQr").checked);
+      // QR 기능 일시 비활성화 (재활성화 시 true로 전환)
+      const includeQr = false;
       const includeStats = !!(document.getElementById("optExportStats") && document.getElementById("optExportStats").checked);
       let qrDataUrl = "";
       if (includeQr) {
+        const shareUrl = buildShareUrl();
         try {
           const QR = (typeof QRCode !== "undefined" && QRCode) || (typeof qrcode !== "undefined" && qrcode) || null;
           if (QR && typeof QR.toDataURL === "function") {
@@ -3805,12 +3805,7 @@
       link.download = `${safe}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      setToast(
-        includeQr && !qrDataUrl
-          ? "이미지를 저장했습니다. (QR 코드 생성 실패로 미포함)"
-          : "이미지를 다운로드했습니다.",
-        includeQr && !qrDataUrl ? "err" : "ok"
-      );
+      setToast("이미지를 다운로드했습니다.", "ok");
     }
 
     // ---- Damage calculator (wikiwiki.jp/maglielle ジーン・加護 "ダメージ計算" formula) ----

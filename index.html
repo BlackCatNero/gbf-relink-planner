@@ -65,10 +65,13 @@
       --modal-backdrop: rgba(8, 12, 18, 0.65);
       --pair-locked-bg: rgba(20, 28, 40, 0.55);
       --priority-bar: #d4b84a;
+      --priority-bar-soft: rgba(212, 184, 74, 0.55);
+      --priority-bar-fade: rgba(212, 184, 74, 0.45);
       --priority-name: #f0e6c0;
       --priority-mark: #d4b84a;
       --capture-bg: #222b37;
       --focus-ring: rgba(61, 159, 214, 0.2);
+      --ink-dim-fade: rgba(213, 224, 236, 0.45);
     }
 
     html[data-theme="light"] {
@@ -111,10 +114,13 @@
       --modal-backdrop: rgba(30, 42, 58, 0.4);
       --pair-locked-bg: rgba(170, 182, 198, 0.55);
       --priority-bar: #a07d20;
+      --priority-bar-soft: rgba(160, 125, 32, 0.55);
+      --priority-bar-fade: rgba(160, 125, 32, 0.45);
       --priority-name: #5c4810;
       --priority-mark: #8a6c18;
       --capture-bg: #ffffff;
       --focus-ring: rgba(42, 122, 176, 0.22);
+      --ink-dim-fade: rgba(42, 54, 72, 0.45);
     }
 
     * { box-sizing: border-box; }
@@ -492,7 +498,7 @@
       cursor: pointer;
       text-decoration: underline;
       text-underline-offset: 2px;
-      text-decoration-color: color-mix(in srgb, var(--ink-dim) 45%, transparent);
+      text-decoration-color: var(--ink-dim-fade);
     }
 
     .line-row .lv.lv-edit:hover,
@@ -1026,7 +1032,7 @@
     .pick-item.cat-priority { background: var(--cat-priority); border-color: var(--cat-priority-border); }
     .pick-item.is-priority {
       box-shadow: inset 3px 0 0 var(--priority-bar);
-      border-color: color-mix(in srgb, var(--priority-bar) 55%, transparent);
+      border-color: var(--priority-bar-soft);
     }
     .pick-item.is-priority .pname { color: var(--priority-name); }
     .pick-item.is-priority .pmark {
@@ -1041,7 +1047,7 @@
     .pick-sep {
       height: 1px;
       margin: 6px 2px 4px;
-      background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--priority-bar) 45%, transparent), transparent);
+      background: linear-gradient(90deg, transparent, var(--priority-bar-fade), transparent);
     }
     .pick-item .pname {
       flex: 1;

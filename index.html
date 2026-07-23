@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
   <script>
     (function () {
@@ -665,7 +665,7 @@
       grid-template-rows: auto 1fr;
       align-content: start;
       gap: 4px;
-      margin-top: auto;
+      margin-top: 4px;
       flex: 1;
       min-height: 72px;
     }
@@ -1310,6 +1310,30 @@
 
     .code-actions .spacer { flex: 1; min-width: 12px; }
 
+    .code-actions .dl-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .code-actions .dl-qr-opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--ink-soft);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .code-actions .dl-qr-opt input {
+      margin: 0;
+      accent-color: var(--active);
+    }
+
     .help {
       margin-top: 12px;
       color: var(--ink-soft);
@@ -1456,13 +1480,16 @@
         <textarea id="codeBox" placeholder="저장하면 코드가 여기에 표시됩니다. 공유 링크(?c=…)를 붙여 넣어도 불러올 수 있습니다." spellcheck="false"></textarea>
       </label>
       <div class="code-actions">
-        <button type="button" class="btn primary" id="btnSave">코드로 저장</button>
+        <button type="button" class="btn primary" id="btnLink">링크로 저장</button>
+        <button type="button" class="btn ghost" id="btnSave">코드로 저장</button>
         <button type="button" class="btn" id="btnLoad">불러오기</button>
-        <button type="button" class="btn ghost" id="btnCopy">클립보드 복사</button>
-        <button type="button" class="btn ghost" id="btnLink">링크로 복사</button>
-        <span class="spacer" aria-hidden="true"></span>
         <button type="button" class="btn ghost" id="btnReset">초기화</button>
-        <button type="button" class="btn primary" id="btnDownload">이미지 다운로드</button>
+        <span class="spacer" aria-hidden="true"></span>
+        <div class="dl-group">
+          <label class="dl-qr-opt"><input type="checkbox" id="optExportStats" checked />스탯 합산 포함</label>
+          <label class="dl-qr-opt"><input type="checkbox" id="optExportQr" checked />QR 코드 생성</label>
+          <button type="button" class="btn primary" id="btnDownload">이미지 다운로드</button>
+        </div>
       </div>
     </section>
   </div>
@@ -3469,18 +3496,33 @@
       }
 
       const shareUrl = buildShareUrl();
+      const includeQr = !!(document.getElementById("optExportQr") && document.getElementById("optExportQr").checked);
+      const includeStats = !!(document.getElementById("optExportStats") && document.getElementById("optExportStats").checked);
       let qrDataUrl = "";
-      try {
-        if (typeof QRCode !== "undefined" && QRCode.toDataURL) {
-          qrDataUrl = await QRCode.toDataURL(shareUrl, {
-            width: 320,
-            margin: 1,
-            errorCorrectionLevel: "M",
-            color: { dark: "#12161c", light: "#ffffff" },
-          });
+      if (includeQr) {
+        try {
+          const QR = (typeof QRCode !== "undefined" && QRCode) || (typeof qrcode !== "undefined" && qrcode) || null;
+          if (QR && typeof QR.toDataURL === "function") {
+            // L: 용량 여유 (긴 공유 링크), 실패 시 M 재시도
+            try {
+              qrDataUrl = await QR.toDataURL(shareUrl, {
+                width: 320,
+                margin: 1,
+                errorCorrectionLevel: "L",
+                color: { dark: "#12161c", light: "#ffffff" },
+              });
+            } catch (_) {
+              qrDataUrl = await QR.toDataURL(shareUrl, {
+                width: 280,
+                margin: 1,
+                errorCorrectionLevel: "M",
+                color: { dark: "#12161c", light: "#ffffff" },
+              });
+            }
+          }
+        } catch (_) {
+          qrDataUrl = "";
         }
-      } catch (_) {
-        qrDataUrl = "";
       }
 
       const target = document.getElementById("capture-root");
@@ -3652,74 +3694,103 @@
             el.style.minWidth = "0";
           });
 
-          const notesField = cloned.querySelector(".notes-field");
-          if (notesField) {
-            notesField.style.minHeight = "0";
-            notesField.style.flex = "0 0 auto";
-            notesField.style.marginTop = "4px";
-            notesField.style.height = "auto";
-            notesField.style.alignSelf = "stretch";
-          }
-          const notesTa = cloned.querySelector(".notes-field textarea");
-          if (notesTa) {
-            const text = notesTa.value || "";
-            const staticEl = _doc.createElement("div");
-            staticEl.className = "notes-static";
-            staticEl.textContent = text;
-            staticEl.style.width = "100%";
-            staticEl.style.boxSizing = "border-box";
-            staticEl.style.minHeight = "36px";
-            staticEl.style.height = "auto";
-            staticEl.style.maxHeight = "none";
-            staticEl.style.font = "inherit";
-            staticEl.style.fontSize = "0.8rem";
-            staticEl.style.fontWeight = "500";
-            staticEl.style.color = "var(--ink)";
-            staticEl.style.background = "var(--surface)";
-            staticEl.style.border = "1px solid var(--line)";
-            staticEl.style.borderRadius = "8px";
-            staticEl.style.padding = "8px 10px";
-            staticEl.style.lineHeight = "1.45";
-            staticEl.style.whiteSpace = "pre-wrap";
-            staticEl.style.overflowWrap = "anywhere";
-            staticEl.style.wordBreak = "break-word";
-            staticEl.style.overflow = "visible";
-            notesTa.replaceWith(staticEl);
+          // 캡처: 마스터 박스는 열 높이에 맞게 유지하고, 비고·QR은 하단(우하단)에 고정
+          const masterZone = cloned.querySelector(".master-zone");
+          if (masterZone) {
+            masterZone.style.display = "flex";
+            masterZone.style.flexDirection = "column";
+            masterZone.style.minHeight = "100%";
+            masterZone.style.height = "100%";
+            masterZone.style.alignSelf = "stretch";
+            masterZone.style.gap = "6px";
+            masterZone.style.boxSizing = "border-box";
           }
 
-          if (qrDataUrl) {
-            const master = cloned.querySelector(".master-zone");
-            if (master) {
-              const wrap = _doc.createElement("div");
-              wrap.className = "export-qr";
-              wrap.style.display = "block";
-              wrap.style.marginTop = "6px";
-              wrap.style.alignSelf = "flex-end";
-              wrap.style.marginLeft = "auto";
-              wrap.style.textAlign = "center";
-              const img = _doc.createElement("img");
-              img.src = qrDataUrl;
-              img.alt = "빌드 QR";
-              img.width = 88;
-              img.height = 88;
-              img.style.display = "block";
-              img.style.borderRadius = "6px";
-              img.style.background = "#fff";
-              img.style.padding = "4px";
-              img.style.boxSizing = "border-box";
-              const cap = _doc.createElement("span");
-              cap.textContent = "스캔하여 빌드 열기";
-              cap.style.display = "block";
-              cap.style.fontSize = "0.58rem";
-              cap.style.color = "var(--ink-soft)";
-              cap.style.fontWeight = "600";
-              cap.style.marginTop = "2px";
-              cap.style.lineHeight = "1.4";
-              cap.style.paddingBottom = "2px";
-              wrap.appendChild(img);
-              wrap.appendChild(cap);
-              master.appendChild(wrap);
+          const notesField = cloned.querySelector(".notes-field");
+          const notesText = (state.notes || "").trim();
+          if (notesField) {
+            if (!notesText) {
+              notesField.remove();
+            } else {
+              notesField.style.minHeight = "0";
+              notesField.style.flex = "0 0 auto";
+              notesField.style.marginTop = "4px";
+              notesField.style.height = "auto";
+              notesField.style.alignSelf = "stretch";
+              notesField.style.display = "flex";
+              notesField.style.flexDirection = "column";
+              notesField.style.alignItems = "stretch";
+              notesField.style.gap = "4px";
+              const notesTa = notesField.querySelector("textarea");
+              if (notesTa) {
+                const notesStatic = _doc.createElement("div");
+                notesStatic.className = "notes-static";
+                notesStatic.textContent = state.notes || "";
+                notesStatic.style.width = "100%";
+                notesStatic.style.boxSizing = "border-box";
+                notesStatic.style.minHeight = "36px";
+                notesStatic.style.height = "auto";
+                notesStatic.style.maxHeight = "none";
+                notesStatic.style.font = "inherit";
+                notesStatic.style.fontSize = "0.8rem";
+                notesStatic.style.fontWeight = "500";
+                notesStatic.style.color = "var(--ink)";
+                notesStatic.style.background = "var(--surface)";
+                notesStatic.style.border = "1px solid var(--line)";
+                notesStatic.style.borderRadius = "8px";
+                notesStatic.style.padding = "8px 10px";
+                notesStatic.style.lineHeight = "1.45";
+                notesStatic.style.whiteSpace = "pre-wrap";
+                notesStatic.style.overflowWrap = "anywhere";
+                notesStatic.style.wordBreak = "break-word";
+                notesStatic.style.overflow = "visible";
+                notesTa.replaceWith(notesStatic);
+              }
             }
+          }
+
+          if (!includeStats) {
+            const statSummary = cloned.querySelector("#statSummary") || cloned.querySelector(".stat-summary");
+            if (statSummary) statSummary.remove();
+          }
+
+          if (qrDataUrl && masterZone) {
+            const wrap = _doc.createElement("div");
+            wrap.className = "export-qr";
+            wrap.style.display = "block";
+            wrap.style.width = "fit-content";
+            wrap.style.maxWidth = "100%";
+            wrap.style.marginTop = "auto";
+            wrap.style.marginLeft = "auto";
+            wrap.style.marginRight = "0";
+            wrap.style.marginBottom = "0";
+            wrap.style.flex = "0 0 auto";
+            wrap.style.alignSelf = "flex-end";
+            wrap.style.textAlign = "center";
+            const img = _doc.createElement("img");
+            img.src = qrDataUrl;
+            img.alt = "빌드 QR";
+            img.width = 88;
+            img.height = 88;
+            img.style.display = "block";
+            img.style.marginLeft = "auto";
+            img.style.borderRadius = "6px";
+            img.style.background = "#fff";
+            img.style.padding = "4px";
+            img.style.boxSizing = "border-box";
+            const cap = _doc.createElement("span");
+            cap.textContent = "스캔하여 빌드 열기";
+            cap.style.display = "block";
+            cap.style.fontSize = "0.58rem";
+            cap.style.color = "var(--ink-soft)";
+            cap.style.fontWeight = "600";
+            cap.style.marginTop = "2px";
+            cap.style.lineHeight = "1.4";
+            cap.style.paddingBottom = "0";
+            wrap.appendChild(img);
+            wrap.appendChild(cap);
+            // 비고는 목록 바로 아래, QR만 박스 하단 우측에 고정
+            masterZone.appendChild(wrap);
           }
         },
       });
@@ -3734,7 +3805,12 @@
       link.download = `${safe}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-      setToast("이미지를 다운로드했습니다.", "ok");
+      setToast(
+        includeQr && !qrDataUrl
+          ? "이미지를 저장했습니다. (QR 코드 생성 실패로 미포함)"
+          : "이미지를 다운로드했습니다.",
+        includeQr && !qrDataUrl ? "err" : "ok"
+      );
     }
 
     // ---- Damage calculator (wikiwiki.jp/maglielle ジーン・加護 "ダメージ計算" formula) ----
@@ -3937,9 +4013,15 @@
       persistState();
     });
 
-    document.getElementById("btnSave").addEventListener("click", () => {
-      document.getElementById("codeBox").value = encodeBuild();
-      setToast("빌드 코드를 생성했습니다.", "ok");
+    document.getElementById("btnSave").addEventListener("click", async () => {
+      const code = encodeBuild();
+      document.getElementById("codeBox").value = code;
+      try {
+        await navigator.clipboard.writeText(code);
+        setToast("빌드 코드를 클립보드에 복사했습니다.", "ok");
+      } catch {
+        setToast("빌드 코드를 생성했습니다. 직접 복사해 주세요.", "ok");
+      }
     });
 
     document.getElementById("btnLoad").addEventListener("click", () => {
@@ -3953,30 +4035,19 @@
       }
     });
 
-    document.getElementById("btnCopy").addEventListener("click", async () => {
-      const code = extractBuildInput(document.getElementById("codeBox").value) || encodeBuild();
-      const normalized = code.startsWith("GBFR") ? code : encodeBuild();
-      document.getElementById("codeBox").value = normalized;
-      try {
-        await navigator.clipboard.writeText(normalized);
-        setToast("클립보드에 복사했습니다.", "ok");
-      } catch {
-        setToast("복사에 실패했습니다.", "err");
-      }
-    });
-
     document.getElementById("btnLink").addEventListener("click", async () => {
       const url = buildShareUrl();
       document.getElementById("codeBox").value = url;
       try {
         await navigator.clipboard.writeText(url);
-        setToast("공유 링크를 복사했습니다.", "ok");
+        setToast("공유 링크를 클립보드에 복사했습니다.", "ok");
       } catch {
         setToast("링크를 생성했습니다. 직접 복사해 주세요.", "ok");
       }
     });
 
     document.getElementById("btnReset").addEventListener("click", () => {
+      if (!window.confirm("정말 초기화하겠습니까?")) return;
       resetAll();
       renderAll();
       setToast("초기화했습니다.", "ok");
